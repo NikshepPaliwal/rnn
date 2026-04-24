@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recurrent Neural Networks — Deep Learning Lecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #181824;
+    --card: #1a1a28;
+    --card2: #1e1e2e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e8f0;
+    --muted: #8888a8;
+    --dim: #555570;
+    --accent: #7c6dfa;
+    --accent2: #a78bfa;
+    --teal: #2dd4bf;
+    --coral: #f87171;
+    --amber: #fbbf24;
+    --green: #34d399;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --purple-light: #c4b5fd;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ── GLOW ORBS ── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 { width: 600px; height: 600px; background: rgba(124,109,250,0.12); top: -200px; right: -200px; }
+  .orb-2 { width: 400px; height: 400px; background: rgba(45,212,191,0.08); bottom: 20%; left: -150px; }
+  .orb-3 { width: 300px; height: 300px; background: rgba(248,113,113,0.06); top: 50%; right: 10%; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-logo span {
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--border); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 100px 2rem 6rem;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 4rem 0 5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 5rem;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    padding: 5px 12px;
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: 100px;
+    background: rgba(124,109,250,0.06);
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--accent2) 0%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 580px;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pill {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    padding: 4px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    background: var(--card);
+  }
+
+  /* ── SECTION ── */
+  section {
+    margin-bottom: 5rem;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  section.visible { opacity: 1; transform: translateY(0); }
+
+  .section-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.25rem;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 2rem 0 0.75rem;
+    color: var(--purple-light);
+  }
+
+  p { color: var(--muted); margin-bottom: 1rem; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* ── EQUATION BOX ── */
+  .eq-box {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .eq-box .eq-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .eq-box .eq {
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    color: var(--teal);
+    line-height: 2;
+  }
+  .eq-box .eq span.comment {
+    color: var(--dim);
+    font-style: italic;
+  }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch-svg-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+
+  svg.arch { width: 100%; height: auto; font-family: 'DM Sans', sans-serif; }
+
+  /* ── GATE CARDS ── */
+  .gates-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 1.5rem 0;
+  }
+  .gate-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .gate-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .gate-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .gate-card.forget::before { background: linear-gradient(90deg, var(--coral), transparent); }
+  .gate-card.input::before  { background: linear-gradient(90deg, var(--blue), transparent); }
+  .gate-card.output::before { background: linear-gradient(90deg, var(--purple-light), transparent); }
+
+  .gate-symbol {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+  .gate-card.forget .gate-symbol { background: rgba(248,113,113,0.1); color: var(--coral); }
+  .gate-card.input  .gate-symbol { background: rgba(96,165,250,0.1); color: var(--blue); }
+  .gate-card.output .gate-symbol { background: rgba(196,181,253,0.1); color: var(--purple-light); }
+
+  .gate-card h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+  .gate-card p { font-size: 0.82rem; color: var(--muted); margin: 0; line-height: 1.5; }
+  .gate-card .gate-eq {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-top: 0.6rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    padding: 4px 8px;
+  }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+  .compare-table thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border2);
+  }
+  .compare-table thead th:first-child { border-radius: 8px 0 0 0; }
+  .compare-table thead th:last-child  { border-radius: 0 8px 0 0; }
+  .compare-table tbody tr { border-bottom: 1px solid var(--border); }
+  .compare-table tbody tr:hover { background: var(--card); }
+  .compare-table td {
+    padding: 10px 16px;
+    color: var(--muted);
+    vertical-align: middle;
+  }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+  .badge-purple { background: rgba(124,109,250,0.15); color: var(--accent2); }
+  .badge-teal   { background: rgba(45,212,191,0.12); color: var(--teal); }
+  .badge-amber  { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .badge-coral  { background: rgba(248,113,113,0.12); color: var(--coral); }
+
+  /* ── CODE BLOCK ── */
+  .code-wrap {
+    background: #0d0d14;
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    margin: 2rem 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-header .dots { display: flex; gap: 6px; }
+  .code-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .code-header .filename {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  pre {
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #c9d1d9;
+  }
+  .kw  { color: #ff7b72; }   /* keyword */
+  .fn  { color: #d2a8ff; }   /* function */
+  .str { color: #a5d6ff; }   /* string */
+  .cm  { color: #555570; font-style: italic; } /* comment */
+  .nb  { color: #ffa657; }   /* number / builtin */
+  .cl  { color: #7ee787; }   /* class */
+  .pm  { color: #79c0ff; }   /* param */
+
+  /* ── APPLICATION CARDS ── */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 1.5rem 0;
+  }
+  .app-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .app-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .app-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.6rem;
+  }
+  .app-badge {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 3px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--border2);
+    font-weight: 500;
+  }
+  .app-card h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+  .app-card p { font-size: 0.82rem; margin: 0; }
+  .app-card .use-cases {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .use-case {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--dim);
+  }
+  .app-card.wide { grid-column: 1 / -1; }
+
+  /* ── TIPS ── */
+  .tips-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 1.25rem 0;
+  }
+  .tips-list li {
+    display: flex;
+    gap: 12px;
+    padding: 1rem 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .tips-list li strong { color: var(--text); font-weight: 500; }
+  .tip-icon {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+  }
+
+  /* ── VANISH GRADIENT EXPLAINER ── */
+  .gradient-viz {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 3rem 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--dim);
+    font-size: 0.85rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── SCROLL PROGRESS ── */
+  #progress-bar {
+    position: fixed;
+    top: 60px; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+    z-index: 101;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  /* ── SIDE TOC ── */
+  .toc {
+    position: fixed;
+    left: max(1rem, calc(50% - 520px));
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+  }
+  .toc-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+    position: relative;
+  }
+  .toc-dot:hover, .toc-dot.active { background: var(--accent2); transform: scale(1.5); }
+  .toc-dot::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toc:hover .toc-dot::after { opacity: 1; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .callout.info {
+    background: rgba(96,165,250,0.06);
+    border: 1px solid rgba(96,165,250,0.15);
+    color: #93c5fd;
+  }
+  .callout.warn {
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.15);
+    color: #fde68a;
+  }
+  .callout-icon { font-size: 1rem; flex-shrink: 0; }
+
+  /* ── RNN TYPE CARDS ── */
+  .rnn-types {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 1.5rem 0;
+  }
+  .rnn-type-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  .rnn-type-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+  .rnn-type-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+  .rnn-viz {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .rnn-box {
+    width: 28px; height: 28px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+  }
+  .rnn-arrow { color: var(--dim); font-size: 0.7rem; }
+  .inp  { background: rgba(45,212,191,0.15); color: var(--teal); border: 1px solid rgba(45,212,191,0.25); }
+  .hid  { background: rgba(124,109,250,0.15); color: var(--accent2); border: 1px solid rgba(124,109,250,0.25); }
+  .out  { background: rgba(248,113,113,0.15); color: var(--coral); border: 1px solid rgba(248,113,113,0.25); }
+  .enc  { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+
+  @media (max-width: 700px) {
+    .gates-grid { grid-template-columns: 1fr; }
+    .apps-grid  { grid-template-columns: 1fr; }
+    .rnn-types  { grid-template-columns: 1fr; }
+    .toc        { display: none; }
+    h2          { font-size: 1.4rem; }
+  }
+
+  /* Scroll fade-in animation stagger */
+  section:nth-child(1) { transition-delay: 0s; }
+  section:nth-child(2) { transition-delay: 0.05s; }
+  section:nth-child(3) { transition-delay: 0.08s; }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div id="progress-bar"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">⬡ <span>Deep Learning</span> / RNN</div>
+  <ul class="nav-links">
+    <li><a href="#intro">Intro</a></li>
+    <li><a href="#arch">Architecture</a></li>
+    <li><a href="#lstm">LSTM</a></li>
+    <li><a href="#gru">GRU</a></li>
+    <li><a href="#code">Code</a></li>
+    <li><a href="#apps">Applications</a></li>
+  </ul>
+</nav>
+
+<!-- SIDE TOC -->
+<nav class="toc" aria-label="Page sections">
+  <div class="toc-dot" data-label="Intro" data-target="intro"></div>
+  <div class="toc-dot" data-label="Architecture" data-target="arch"></div>
+  <div class="toc-dot" data-label="Equations" data-target="equations"></div>
+  <div class="toc-dot" data-label="Types" data-target="types"></div>
+  <div class="toc-dot" data-label="Vanishing Gradient" data-target="vanish"></div>
+  <div class="toc-dot" data-label="LSTM" data-target="lstm"></div>
+  <div class="toc-dot" data-label="GRU" data-target="gru"></div>
+  <div class="toc-dot" data-label="Code" data-target="code"></div>
+  <div class="toc-dot" data-label="Applications" data-target="apps"></div>
+  <div class="toc-dot" data-label="Tips" data-target="tips"></div>
+</nav>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Deep Learning · Lecture 07</div>
+    <h1>Recurrent<br><em>Neural Networks</em></h1>
+    <p class="hero-sub">A complete lecture covering the theory, architecture, variants, and implementation of RNNs — the class of neural networks designed to learn from sequential and temporal data.</p>
+    <div class="hero-pills">
+      <span class="pill">Vanilla RNN</span>
+      <span class="pill">LSTM</span>
+      <span class="pill">GRU</span>
+      <span class="pill">Bidirectional</span>
+      <span class="pill">Seq2Seq</span>
+      <span class="pill">PyTorch</span>
+    </div>
+  </div>
+
+  <!-- 1. INTRO -->
+  <section id="intro">
+    <div class="section-number">01 — Introduction</div>
+    <h2>What Problem Do RNNs Solve?</h2>
+    <p>Standard feedforward neural networks process every input <strong>independently</strong>. They have no memory of what came before. Show them the sentence <em>"The cat sat on the ___"</em> and they cannot leverage context from previous words to predict the next.</p>
+    <p><strong>RNNs solve the sequential dependency problem</strong> by maintaining a hidden state — a compressed memory — that carries information across time steps. The same network weights are reused at every step, letting RNNs generalize across sequences of arbitrary length.</p>
+    <p>RNNs are the natural architecture for: text and language, audio and speech, time-series forecasting, DNA sequence analysis, video frame prediction, and any domain where order matters.</p>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <span>The core insight: a single RNN "cell" is applied repeatedly, sharing weights across every time step. This is analogous to how humans process language — we don't forget what was said three words ago.</span>
+    </div>
+  </section>
+
+  <!-- 2. ARCHITECTURE -->
+  <section id="arch">
+    <div class="section-number">02 — Architecture</div>
+    <h2>The Unrolled RNN</h2>
+    <p>An RNN can be visualized by "unrolling" it across time. Each column below represents one time step — the same cell is reused, sharing weights W_xh, W_hh, and W_hy throughout.</p>
+
+    <div class="arch-svg-wrap">
+      <svg class="arch" viewBox="0 0 820 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Time arrow -->
+        <text x="410" y="18" text-anchor="middle" font-size="11" font-family="DM Mono" fill="#555570" letter-spacing="2">TIME UNFOLDS →</text>
+        <line x1="60" y1="26" x2="760" y2="26" stroke="#333345" stroke-width="1" marker-end="url(#arr-dim)"/>
+
+        <defs>
+          <marker id="arr-dim" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#555570" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#2dd4bf" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#a78bfa" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="arr-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#f87171" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- T-1 -->
+        <rect x="60" y="195" width="100" height="36" rx="7" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.35)" stroke-width="1"/>
+        <text x="110" y="218" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#2dd4bf" font-weight="500">x(t−1)</text>
+
+        <rect x="60" y="100" width="100" height="50" rx="8" fill="rgba(124,109,250,0.12)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+        <text x="110" y="121" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#a78bfa" font-weight="500">h(t−1)</text>
+        <text x="110" y="138" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#7c6dfa">hidden state</text>
+
+        <rect x="60" y="44" width="100" height="36" rx="7" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+        <text x="110" y="67" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#f87171" font-weight="500">y(t−1)</text>
+
+        <line x1="110" y1="195" x2="110" y2="152" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#arr-purple)"/>
+        <line x1="110" y1="100" x2="110" y2="82" stroke="#f87171" stroke-width="1.2" marker-end="url(#arr-coral)"/>
+        <text x="116" y="180" font-size="9" font-family="DM Mono" fill="#555570">W_xh</text>
+        <text x="116" y="96" font-size="9" font-family="DM Mono" fill="#555570">W_hy</text>
+
+        <!-- Ellipsis -->
+        <text x="200" y="130" font-size="22" fill="#333345" text-anchor="middle">···</text>
+
+        <!-- T -->
+        <rect x="260" y="195" width="100" height="36" rx="7" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.35)" stroke-width="1"/>
+        <text x="310" y="218" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#2dd4bf" font-weight="500">x(t)</text>
+
+        <rect x="260" y="100" width="100" height="50" rx="8" fill="rgba(124,109,250,0.12)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+        <text x="310" y="121" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#a78bfa" font-weight="500">h(t)</text>
+        <text x="310" y="138" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#7c6dfa">hidden state</text>
+
+        <rect x="260" y="44" width="100" height="36" rx="7" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+        <text x="310" y="67" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#f87171" font-weight="500">y(t)</text>
+
+        <line x1="310" y1="195" x2="310" y2="152" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#arr-purple)"/>
+        <line x1="310" y1="100" x2="310" y2="82" stroke="#f87171" stroke-width="1.2" marker-end="url(#arr-coral)"/>
+        <text x="316" y="180" font-size="9" font-family="DM Mono" fill="#555570">W_xh</text>
+        <text x="316" y="96" font-size="9" font-family="DM Mono" fill="#555570">W_hy</text>
+
+        <!-- Ellipsis 2 -->
+        <text x="400" y="130" font-size="22" fill="#333345" text-anchor="middle">···</text>
+
+        <!-- T+1 -->
+        <rect x="460" y="195" width="100" height="36" rx="7" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.35)" stroke-width="1"/>
+        <text x="510" y="218" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#2dd4bf" font-weight="500">x(t+1)</text>
+
+        <rect x="460" y="100" width="100" height="50" rx="8" fill="rgba(124,109,250,0.12)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+        <text x="510" y="121" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#a78bfa" font-weight="500">h(t+1)</text>
+        <text x="510" y="138" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#7c6dfa">hidden state</text>
+
+        <rect x="460" y="44" width="100" height="36" rx="7" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+        <text x="510" y="67" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#f87171" font-weight="500">y(t+1)</text>
+
+        <line x1="510" y1="195" x2="510" y2="152" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#arr-purple)"/>
+        <line x1="510" y1="100" x2="510" y2="82" stroke="#f87171" stroke-width="1.2" marker-end="url(#arr-coral)"/>
+        <text x="516" y="180" font-size="9" font-family="DM Mono" fill="#555570">W_xh</text>
+        <text x="516" y="96" font-size="9" font-family="DM Mono" fill="#555570">W_hy</text>
+
+        <!-- Ellipsis 3 -->
+        <text x="600" y="130" font-size="22" fill="#333345" text-anchor="middle">···</text>
+
+        <!-- T+N -->
+        <rect x="660" y="195" width="100" height="36" rx="7" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.35)" stroke-width="1"/>
+        <text x="710" y="218" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#2dd4bf" font-weight="500">x(t+n)</text>
+
+        <rect x="660" y="100" width="100" height="50" rx="8" fill="rgba(124,109,250,0.12)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+        <text x="710" y="121" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#a78bfa" font-weight="500">h(t+n)</text>
+        <text x="710" y="138" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#7c6dfa">hidden state</text>
+
+        <rect x="660" y="44" width="100" height="36" rx="7" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+        <text x="710" y="67" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#f87171" font-weight="500">y(t+n)</text>
+
+        <line x1="710" y1="195" x2="710" y2="152" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#arr-purple)"/>
+        <line x1="710" y1="100" x2="710" y2="82" stroke="#f87171" stroke-width="1.2" marker-end="url(#arr-coral)"/>
+        <text x="716" y="180" font-size="9" font-family="DM Mono" fill="#555570">W_xh</text>
+        <text x="716" y="96" font-size="9" font-family="DM Mono" fill="#555570">W_hy</text>
+
+        <!-- Recurrent arrows -->
+        <path d="M160 125 Q210 125 220 125" stroke="#7c6dfa" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.5"/>
+        <path d="M360 125 Q410 125 420 125" stroke="#7c6dfa" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.5"/>
+        <path d="M560 125 Q610 125 620 125" stroke="#7c6dfa" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.5"/>
+
+        <!-- W_hh labels -->
+        <rect x="168" y="112" width="44" height="16" rx="3" fill="#111118"/>
+        <text x="190" y="124" text-anchor="middle" font-size="9" font-family="DM Mono" fill="#7c6dfa">W_hh</text>
+        <rect x="368" y="112" width="44" height="16" rx="3" fill="#111118"/>
+        <text x="390" y="124" text-anchor="middle" font-size="9" font-family="DM Mono" fill="#7c6dfa">W_hh</text>
+        <rect x="568" y="112" width="44" height="16" rx="3" fill="#111118"/>
+        <text x="590" y="124" text-anchor="middle" font-size="9" font-family="DM Mono" fill="#7c6dfa">W_hh</text>
+
+        <!-- Legend -->
+        <rect x="60" y="246" width="12" height="12" rx="2" fill="rgba(45,212,191,0.2)" stroke="rgba(45,212,191,0.4)" stroke-width="1"/>
+        <text x="78" y="257" font-size="11" font-family="DM Sans" fill="#555570">Input x(t)</text>
+        <rect x="170" y="246" width="12" height="12" rx="2" fill="rgba(124,109,250,0.2)" stroke="rgba(167,139,250,0.4)" stroke-width="1"/>
+        <text x="188" y="257" font-size="11" font-family="DM Sans" fill="#555570">Hidden h(t)</text>
+        <rect x="290" y="246" width="12" height="12" rx="2" fill="rgba(248,113,113,0.2)" stroke="rgba(248,113,113,0.35)" stroke-width="1"/>
+        <text x="308" y="257" font-size="11" font-family="DM Sans" fill="#555570">Output y(t)</text>
+        <line x1="400" y1="252" x2="430" y2="252" stroke="#7c6dfa" stroke-width="2" marker-end="url(#arr-purple)"/>
+        <text x="436" y="257" font-size="11" font-family="DM Sans" fill="#555570">Shared W_hh (recurrent)</text>
+      </svg>
+    </div>
+
+    <p><strong>Key insight:</strong> the weights W_xh, W_hh, and W_hy are <em>shared across all time steps</em>. This is weight tying across time — it lets the network generalize to sequences of any length without adding parameters.</p>
+  </section>
+
+  <!-- 3. EQUATIONS -->
+  <section id="equations">
+    <div class="section-number">03 — Mathematics</div>
+    <h2>The Core Equations</h2>
+    <p>At each time step <em>t</em>, the RNN computes two things: an updated hidden state (memory) and an output.</p>
+
+    <div class="eq-box">
+      <div class="eq-label">Hidden State Update</div>
+      <div class="eq">
+        h(t) = tanh( W_xh · x(t)  +  W_hh · h(t−1)  +  b_h )<br>
+        <span class="comment">         ↑ input contribution   ↑ memory from past</span>
+      </div>
+    </div>
+
+    <div class="eq-box" style="border-left-color: var(--coral)">
+      <div class="eq-label" style="color: var(--coral)">Output</div>
+      <div class="eq" style="color: var(--coral)">
+        y(t) = W_hy · h(t)  +  b_y<br>
+        <span class="comment">         ↑ optionally followed by softmax for classification</span>
+      </div>
+    </div>
+
+    <p>The <strong>tanh</strong> activation squashes the hidden state to [−1, 1], preventing unbounded growth. Note that h(0) — the initial hidden state — is typically set to all zeros.</p>
+  </section>
+
+  <!-- 4. TYPES -->
+  <section id="types">
+    <div class="section-number">04 — Architecture Variants</div>
+    <h2>Types of RNN Configurations</h2>
+    <p>RNNs can be wired in fundamentally different ways depending on the task. The input and output sequences don't have to be the same length.</p>
+
+    <div class="rnn-types">
+      <div class="rnn-type-card">
+        <div class="rnn-type-title">One-to-Many</div>
+        <div class="rnn-type-sub">Single input → sequence output</div>
+        <div class="rnn-viz">
+          <div class="rnn-box inp">x</div>
+          <span class="rnn-arrow">→</span>
+          <div class="rnn-box hid">h</div><span class="rnn-arrow">→</span><div class="rnn-box hid">h</div><span class="rnn-arrow">→</span><div class="rnn-box hid">h</div>
+          <br style="width:100%">
+          <div style="width:100%;display:flex;gap:4px;margin-top:4px;margin-left:32px">
+            <div class="rnn-box out">y₁</div><div class="rnn-box out">y₂</div><div class="rnn-box out">y₃</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px;font-family:'DM Mono',monospace">Image captioning</div>
+      </div>
+
+      <div class="rnn-type-card">
+        <div class="rnn-type-title">Many-to-One</div>
+        <div class="rnn-type-sub">Sequence input → single output</div>
+        <div class="rnn-viz">
+          <div class="rnn-box inp">x₁</div><span class="rnn-arrow">→</span>
+          <div class="rnn-box hid">h</div><span class="rnn-arrow">→</span>
+          <div class="rnn-box inp">x₂</div><span class="rnn-arrow">→</span>
+          <div class="rnn-box hid">h</div><span class="rnn-arrow">→</span>
+          <div class="rnn-box out">y</div>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px;font-family:'DM Mono',monospace">Sentiment analysis</div>
+      </div>
+
+      <div class="rnn-type-card">
+        <div class="rnn-type-title">Many-to-Many (same length)</div>
+        <div class="rnn-type-sub">Sequence → same-length sequence</div>
+        <div class="rnn-viz">
+          <div class="rnn-box inp">x₁</div><span class="rnn-arrow">→</span><div class="rnn-box hid">h</div><span class="rnn-arrow">→</span><div class="rnn-box out">y₁</div>
+          &nbsp;<div class="rnn-box inp">x₂</div><span class="rnn-arrow">→</span><div class="rnn-box hid">h</div><span class="rnn-arrow">→</span><div class="rnn-box out">y₂</div>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px;font-family:'DM Mono',monospace">POS tagging, NER</div>
+      </div>
+
+      <div class="rnn-type-card">
+        <div class="rnn-type-title">Seq2Seq (Encoder–Decoder)</div>
+        <div class="rnn-type-sub">Variable → variable length</div>
+        <div class="rnn-viz" style="flex-wrap:wrap;gap:4px">
+          <div class="rnn-box inp">x₁</div><div class="rnn-box inp">x₂</div>
+          <span class="rnn-arrow">→</span>
+          <div class="rnn-box enc" style="width:36px;font-size:8px">CTX</div>
+          <span class="rnn-arrow">→</span>
+          <div class="rnn-box out">y₁</div><div class="rnn-box out">y₂</div><div class="rnn-box out">y₃</div>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:8px;font-family:'DM Mono',monospace">Machine translation</div>
+      </div>
+    </div>
+
+    <h3>Bidirectional RNN</h3>
+    <p>A <strong>bidirectional RNN</strong> runs two passes over the sequence — one forward (past → future) and one backward (future → past). The outputs are concatenated, giving each position access to the full sequence context. This is essential for tasks like named entity recognition or question answering where you need to see the whole sentence before deciding.</p>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <span>Bidirectional RNNs require the full input sequence at once — they cannot process streaming inputs in real time.</span>
+    </div>
+  </section>
+
+  <!-- 5. VANISHING GRADIENT -->
+  <section id="vanish">
+    <div class="section-number">05 — The Problem</div>
+    <h2>Vanishing Gradient Problem</h2>
+    <p>During backpropagation through time (BPTT), gradients flow backwards through every time step — multiplied by W_hh at each step. If the spectral radius of W_hh is less than 1, the gradient shrinks exponentially:</p>
+
+    <div class="gradient-viz">
+      <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding:4px 0">
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--dim);white-space:nowrap">t=100</span>
+        <div style="width:48px;height:28px;border-radius:5px;background:rgba(248,113,113,0.9);flex-shrink:0"></div>
+        <span style="color:var(--dim);font-size:12px">→</span>
+        <div style="width:40px;height:24px;border-radius:5px;background:rgba(248,113,113,0.65);flex-shrink:0"></div>
+        <span style="color:var(--dim);font-size:12px">→</span>
+        <div style="width:32px;height:20px;border-radius:5px;background:rgba(248,113,113,0.4);flex-shrink:0"></div>
+        <span style="color:var(--dim);font-size:12px">→</span>
+        <div style="width:24px;height:14px;border-radius:5px;background:rgba(248,113,113,0.22);flex-shrink:0;align-self:center"></div>
+        <span style="color:var(--dim);font-size:12px">→</span>
+        <div style="width:14px;height:8px;border-radius:5px;background:rgba(248,113,113,0.08);flex-shrink:0;align-self:center"></div>
+        <span style="color:var(--dim);font-size:12px">→</span>
+        <div style="width:6px;height:4px;border-radius:3px;background:rgba(248,113,113,0.02);flex-shrink:0;align-self:center"></div>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--dim);white-space:nowrap">t=0 ≈ 0</span>
+      </div>
+      <p style="font-size:0.8rem;margin-top:0.75rem;margin-bottom:0">Gradient signal vanishes as it travels back through many time steps → the network forgets long-range dependencies.</p>
+    </div>
+
+    <p>This is why vanilla RNNs practically fail on sequences longer than ~10–20 steps. The solution: <strong>LSTM</strong> and <strong>GRU</strong>, which introduce gating mechanisms that allow gradients to flow unimpeded over hundreds of steps.</p>
+  </section>
+
+  <!-- 6. LSTM -->
+  <section id="lstm">
+    <div class="section-number">06 — Long Short-Term Memory</div>
+    <h2>LSTM Architecture</h2>
+    <p>Proposed by <strong>Hochreiter & Schmidhuber (1997)</strong>, the LSTM introduces a separate <strong>cell state</strong> C(t) — a memory highway that runs parallel to the hidden state. Three gates control what information flows in, out, and what gets erased.</p>
+
+    <div class="arch-svg-wrap">
+      <svg class="arch" viewBox="0 0 820 310" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="al" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#7ee787" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#8888a8" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#f87171" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="abl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#60a5fa" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+          <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M2 2L8 5L2 8" stroke="#a78bfa" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- Cell state highway -->
+        <text x="410" y="20" text-anchor="middle" font-size="11" font-family="DM Mono" fill="#3B6D11" letter-spacing="1">CELL STATE C(t) — MEMORY HIGHWAY</text>
+        <line x1="30" y1="34" x2="790" y2="34" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" marker-end="url(#al)"/>
+        <text x="40" y="30" font-size="10" font-family="DM Mono" fill="#34d399">C(t−1)</text>
+        <text x="760" y="30" font-size="10" font-family="DM Mono" fill="#34d399">C(t)</text>
+
+        <!-- FORGET GATE -->
+        <rect x="80" y="110" width="140" height="66" rx="10" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.4)" stroke-width="1"/>
+        <text x="150" y="136" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#f87171" font-weight="600">Forget Gate</text>
+        <text x="150" y="154" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#f87171" opacity="0.7">σ(W_f·[h,x]+b_f)</text>
+        <text x="150" y="170" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#555570">0=forget, 1=keep</text>
+
+        <!-- × on cell highway for forget -->
+        <circle cx="150" cy="55" r="12" fill="#0d0d14" stroke="rgba(248,113,113,0.5)" stroke-width="1.5"/>
+        <text x="150" y="59" text-anchor="middle" font-size="14" font-family="DM Mono" fill="#f87171">×</text>
+        <line x1="150" y1="110" x2="150" y2="68" stroke="#f87171" stroke-width="1.2" marker-end="url(#ar)"/>
+
+        <!-- INPUT GATE -->
+        <rect x="280" y="110" width="140" height="66" rx="10" fill="rgba(96,165,250,0.1)" stroke="rgba(96,165,250,0.35)" stroke-width="1"/>
+        <text x="350" y="136" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#60a5fa" font-weight="600">Input Gate</text>
+        <text x="350" y="154" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#60a5fa" opacity="0.7">σ(W_i·[h,x]+b_i)</text>
+        <text x="350" y="170" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#555570">what to write</text>
+
+        <!-- CANDIDATE -->
+        <rect x="280" y="210" width="140" height="52" rx="10" fill="rgba(45,212,191,0.08)" stroke="rgba(45,212,191,0.3)" stroke-width="1"/>
+        <text x="350" y="232" text-anchor="middle" font-size="12" font-family="DM Sans" fill="#2dd4bf" font-weight="600">Candidate C̃(t)</text>
+        <text x="350" y="250" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#2dd4bf" opacity="0.7">tanh(W_C·[h,x]+b_C)</text>
+
+        <!-- × for input × candidate -->
+        <circle cx="350" cy="80" r="12" fill="#0d0d14" stroke="rgba(96,165,250,0.5)" stroke-width="1.5"/>
+        <text x="350" y="84" text-anchor="middle" font-size="14" font-family="DM Mono" fill="#60a5fa">×</text>
+        <line x1="350" y1="110" x2="350" y2="93" stroke="#60a5fa" stroke-width="1.2" marker-end="url(#abl)"/>
+        <line x1="350" y1="210" x2="350" y2="93" stroke="#2dd4bf" stroke-width="1.2" marker-end="url(#abl)"/>
+
+        <!-- + on cell highway -->
+        <circle cx="350" cy="55" r="12" fill="#0d0d14" stroke="rgba(52,211,153,0.5)" stroke-width="1.5"/>
+        <text x="350" y="59" text-anchor="middle" font-size="14" font-family="DM Mono" fill="#34d399">+</text>
+        <line x1="350" y1="80" x2="350" y2="68" stroke="#60a5fa" stroke-width="1.2" marker-end="url(#al)"/>
+
+        <!-- Cell highway segments -->
+        <path d="M163 34 Q256 34 336 34" stroke="#34d399" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+        <path d="M364 34 L790" stroke="#34d399" stroke-width="2.5" fill="none"/>
+
+        <!-- OUTPUT GATE -->
+        <rect x="530" y="110" width="140" height="66" rx="10" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.35)" stroke-width="1"/>
+        <text x="600" y="136" text-anchor="middle" font-size="13" font-family="DM Sans" fill="#a78bfa" font-weight="600">Output Gate</text>
+        <text x="600" y="154" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#a78bfa" opacity="0.7">σ(W_o·[h,x]+b_o)</text>
+        <text x="600" y="170" text-anchor="middle" font-size="10" font-family="DM Mono" fill="#555570">what to expose</text>
+
+        <!-- tanh(C) -->
+        <rect x="530" y="210" width="140" height="46" rx="10" fill="rgba(136,136,168,0.08)" stroke="rgba(136,136,168,0.25)" stroke-width="1"/>
+        <text x="600" y="237" text-anchor="middle" font-size="12" font-family="DM Sans" fill="#8888a8" font-weight="500">tanh(C(t))</text>
+
+        <!-- × for output -->
+        <circle cx="600" cy="80" r="12" fill="#0d0d14" stroke="rgba(167,139,250,0.5)" stroke-width="1.5"/>
+        <text x="600" y="84" text-anchor="middle" font-size="14" font-family="DM Mono" fill="#a78bfa">×</text>
+        <line x1="600" y1="110" x2="600" y2="93" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#ap)"/>
+        <line x1="600" y1="210" x2="600" y2="93" stroke="#8888a8" stroke-width="1.2" marker-end="url(#ap)"/>
+
+        <!-- h(t) out -->
+        <line x1="600" y1="80" x2="760" y2="80" stroke="#a78bfa" stroke-width="2" marker-end="url(#ap)"/>
+        <text x="768" y="84" font-size="12" font-family="DM Mono" fill="#a78bfa">h(t)</text>
+
+        <!-- Cell to tanh(C) connection -->
+        <path d="M700 34 L700 233 L672 233" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5 3" fill="none" marker-end="url(#al)"/>
+
+        <!-- Inputs bar -->
+        <rect x="80" y="280" width="590" height="26" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+        <text x="375" y="297" text-anchor="middle" font-size="11" font-family="DM Mono" fill="#555570">[ h(t−1), x(t) ] — concatenated input fed to all three gates</text>
+      </svg>
+    </div>
+
+    <div class="gates-grid">
+      <div class="gate-card forget">
+        <div class="gate-symbol">f</div>
+        <h4>Forget Gate</h4>
+        <p>Decides what fraction of the old cell state to discard. Output is sigmoid — 0 means erase completely, 1 means preserve fully.</p>
+        <div class="gate-eq">f(t) = σ( W_f · [h(t-1), x(t)] + b_f )</div>
+      </div>
+      <div class="gate-card input">
+        <div class="gate-symbol">i</div>
+        <h4>Input Gate</h4>
+        <p>Decides which new information to write into the cell state. Works with a tanh layer that generates candidate values.</p>
+        <div class="gate-eq">i(t) = σ( W_i · [h(t-1), x(t)] + b_i )</div>
+      </div>
+      <div class="gate-card output">
+        <div class="gate-symbol">o</div>
+        <h4>Output Gate</h4>
+        <p>Decides what portion of the cell state to expose as the hidden state h(t). Filters the cell state through tanh.</p>
+        <div class="gate-eq">o(t) = σ( W_o · [h(t-1), x(t)] + b_o )</div>
+      </div>
+    </div>
+
+    <div class="eq-box" style="border-left-color: var(--green)">
+      <div class="eq-label" style="color: var(--green)">Cell State Update (the key innovation)</div>
+      <div class="eq" style="color: var(--green)">
+        C(t)  = f(t) ⊙ C(t−1)  +  i(t) ⊙ C̃(t)<br>
+        h(t)  = o(t) ⊙ tanh( C(t) )<br>
+        <span class="comment">⊙ = element-wise multiplication</span>
+      </div>
+    </div>
+
+    <p>The cell state only interacts with the hidden state through <strong>additive updates</strong> — this is why gradients can flow through long sequences without vanishing.</p>
+  </section>
+
+  <!-- 7. GRU -->
+  <section id="gru">
+    <div class="section-number">07 — Gated Recurrent Unit</div>
+    <h2>GRU — The Lighter Alternative</h2>
+    <p>Introduced by <strong>Cho et al. (2014)</strong>, the GRU simplifies LSTM by merging the cell and hidden state into one, and collapsing to just two gates: a reset gate and an update gate.</p>
+
+    <div class="eq-box" style="border-left-color: var(--teal)">
+      <div class="eq-label" style="color: var(--teal)">GRU Equations</div>
+      <div class="eq" style="color: var(--teal)">
+        r(t)  = σ( W_r · [h(t−1), x(t)] )<br>
+        z(t)  = σ( W_z · [h(t−1), x(t)] )<br>
+        h̃(t) = tanh( W · [r(t) ⊙ h(t−1), x(t)] )<br>
+        h(t)  = (1−z(t)) ⊙ h(t−1)  +  z(t) ⊙ h̃(t)<br>
+        <span class="comment">r = reset gate · z = update gate (acts like forget+input combined)</span>
+      </div>
+    </div>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Vanilla RNN</th>
+          <th>LSTM</th>
+          <th>GRU</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gates</td>
+          <td>None</td>
+          <td><span class="badge badge-purple">3 (f, i, o)</span></td>
+          <td><span class="badge badge-teal">2 (r, z)</span></td>
+        </tr>
+        <tr>
+          <td>Hidden states</td>
+          <td>h only</td>
+          <td>h + cell state C</td>
+          <td>h only</td>
+        </tr>
+        <tr>
+          <td>Parameters</td>
+          <td>Fewest</td>
+          <td><span class="badge badge-coral">Most</span></td>
+          <td><span class="badge badge-teal">~25% fewer than LSTM</span></td>
+        </tr>
+        <tr>
+          <td>Training speed</td>
+          <td>Fastest</td>
+          <td>Slowest</td>
+          <td><span class="badge badge-teal">Faster than LSTM</span></td>
+        </tr>
+        <tr>
+          <td>Long sequences</td>
+          <td>Struggles (&lt;20 steps)</td>
+          <td><span class="badge badge-purple">Excellent</span></td>
+          <td><span class="badge badge-teal">Very good</span></td>
+        </tr>
+        <tr>
+          <td>Best for</td>
+          <td>Learning / small data</td>
+          <td>Complex language tasks</td>
+          <td>Balanced performance</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 8. CODE -->
+  <section id="code">
+    <div class="section-number">08 — Implementation</div>
+    <h2>PyTorch Implementation</h2>
+    <p>Below is a complete implementation showing the manual math, the high-level PyTorch API, and a full training loop with gradient clipping.</p>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="filename">vanilla_rnn_cell.py</div>
+      </div>
+      <pre><span class="cm"># Manual RNN cell — the pure math</span>
+<span class="kw">class</span> <span class="cl">VanillaRNNCell</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, input_size, hidden_size, output_size):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        self.W_xh = nn.<span class="cl">Linear</span>(input_size, hidden_size)
+        self.W_hh = nn.<span class="cl">Linear</span>(hidden_size, hidden_size, bias=<span class="nb">False</span>)
+        self.W_hy = nn.<span class="cl">Linear</span>(hidden_size, output_size)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x_seq, h0=<span class="nb">None</span>):
+        batch_size, seq_len, _ = x_seq.shape
+        h = h0 <span class="kw">if</span> h0 <span class="kw">is not</span> <span class="nb">None</span> <span class="kw">else</span> torch.<span class="fn">zeros</span>(batch_size, self.hidden_size)
+
+        outputs = []
+        <span class="kw">for</span> t <span class="kw">in</span> <span class="fn">range</span>(seq_len):
+            x_t = x_seq[:, t, :]
+            h = torch.<span class="fn">tanh</span>(self.W_xh(x_t) + self.W_hh(h))  <span class="cm"># core equation</span>
+            outputs.<span class="fn">append</span>(self.W_hy(h).<span class="fn">unsqueeze</span>(<span class="nb">1</span>))
+
+        <span class="kw">return</span> torch.<span class="fn">cat</span>(outputs, dim=<span class="nb">1</span>), h</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="filename">lstm_cell_manual.py</div>
+      </div>
+      <pre><span class="cm"># LSTM cell — all four gates explicit</span>
+<span class="kw">class</span> <span class="cl">LSTMCellManual</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, input_size, hidden_size):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        combined = input_size + hidden_size
+        self.W_f = nn.<span class="cl">Linear</span>(combined, hidden_size)  <span class="cm"># forget</span>
+        self.W_i = nn.<span class="cl">Linear</span>(combined, hidden_size)  <span class="cm"># input</span>
+        self.W_C = nn.<span class="cl">Linear</span>(combined, hidden_size)  <span class="cm"># candidate</span>
+        self.W_o = nn.<span class="cl">Linear</span>(combined, hidden_size)  <span class="cm"># output</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, h_prev, C_prev):
+        combined = torch.<span class="fn">cat</span>([h_prev, x], dim=<span class="nb">1</span>)
+
+        f = torch.<span class="fn">sigmoid</span>(self.W_f(combined))       <span class="cm"># forget gate</span>
+        i = torch.<span class="fn">sigmoid</span>(self.W_i(combined))       <span class="cm"># input gate</span>
+        C_tilde = torch.<span class="fn">tanh</span>(self.W_C(combined))    <span class="cm"># candidate</span>
+        C = f * C_prev + i * C_tilde                  <span class="cm"># update cell state</span>
+        o = torch.<span class="fn">sigmoid</span>(self.W_o(combined))       <span class="cm"># output gate</span>
+        h = o * torch.<span class="fn">tanh</span>(C)                        <span class="cm"># new hidden state</span>
+
+        <span class="kw">return</span> h, C</pre>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <div class="filename">sentiment_lstm.py</div>
+      </div>
+      <pre><span class="cm"># High-level model using nn.LSTM</span>
+<span class="kw">class</span> <span class="cl">SentimentLSTM</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vocab_size, embed_dim, hidden_size,
+                 num_classes, num_layers=<span class="nb">2</span>, bidirectional=<span class="nb">False</span>):
+        <span class="fn">super</span>().<span class="fn">__init__</span>()
+        self.embedding = nn.<span class="cl">Embedding</span>(vocab_size, embed_dim, padding_idx=<span class="nb">0</span>)
+        self.lstm = nn.<span class="cl">LSTM</span>(
+            input_size=embed_dim, hidden_size=hidden_size,
+            num_layers=num_layers, batch_first=<span class="nb">True</span>,
+            dropout=<span class="nb">0.3</span>, bidirectional=bidirectional
+        )
+        directions = <span class="nb">2</span> <span class="kw">if</span> bidirectional <span class="kw">else</span> <span class="nb">1</span>
+        self.fc = nn.<span class="cl">Linear</span>(hidden_size * directions, num_classes)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        emb = self.embedding(x)
+        _, (hidden, _) = self.lstm(emb)
+        last = torch.<span class="fn">cat</span>([hidden[<span class="nb">-2</span>], hidden[<span class="nb">-1</span>]], dim=<span class="nb">1</span>) \
+               <span class="kw">if</span> self.lstm.bidirectional <span class="kw">else</span> hidden[<span class="nb">-1</span>]
+        <span class="kw">return</span> self.fc(last)
+
+
+<span class="cm"># Training loop with gradient clipping</span>
+<span class="kw">def</span> <span class="fn">train_epoch</span>(model, loader, optimizer, criterion, clip=<span class="nb">1.0</span>):
+    model.<span class="fn">train</span>()
+    <span class="kw">for</span> X, y <span class="kw">in</span> loader:
+        optimizer.<span class="fn">zero_grad</span>()
+        loss = criterion(model(X), y)
+        loss.<span class="fn">backward</span>()
+        <span class="cm"># Critical: clip gradients to prevent explosion</span>
+        nn.utils.rnn.<span class="fn">clip_grad_norm_</span>(model.<span class="fn">parameters</span>(), clip)
+        optimizer.<span class="fn">step</span>()</pre>
+    </div>
+  </section>
+
+  <!-- 9. APPLICATIONS -->
+  <section id="apps">
+    <div class="section-number">09 — Applications</div>
+    <h2>When to Use Which Model</h2>
+
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-card-header">
+          <span class="app-badge" style="color:var(--coral);border-color:rgba(248,113,113,0.25)">Vanilla RNN</span>
+        </div>
+        <h4>Simple sequential tasks</h4>
+        <p>Best as a teaching tool. Practical for very short sequences only — fails beyond ~20 steps due to vanishing gradients.</p>
+        <div class="use-cases">
+          <span class="use-case">Learning</span>
+          <span class="use-case">Short time-series</span>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-header">
+          <span class="app-badge" style="color:var(--accent2);border-color:rgba(167,139,250,0.25)">LSTM</span>
+        </div>
+        <h4>Long-range dependency tasks</h4>
+        <p>The go-to for NLP, time-series, and speech. Handles hundreds to thousands of time steps reliably.</p>
+        <div class="use-cases">
+          <span class="use-case">Sentiment analysis</span>
+          <span class="use-case">Language model</span>
+          <span class="use-case">Speech</span>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-header">
+          <span class="app-badge" style="color:var(--teal);border-color:rgba(45,212,191,0.25)">GRU</span>
+        </div>
+        <h4>Fast, efficient NLP</h4>
+        <p>Competitive with LSTM on most tasks while training ~25% faster. Preferred in resource-constrained settings.</p>
+        <div class="use-cases">
+          <span class="use-case">Mobile NLP</span>
+          <span class="use-case">Fast prototyping</span>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-card-header">
+          <span class="app-badge" style="color:var(--amber);border-color:rgba(251,191,36,0.25)">Bi-LSTM</span>
+        </div>
+        <h4>Full-context understanding</h4>
+        <p>Sees both past and future tokens. Ideal when the full sequence is available at inference time.</p>
+        <div class="use-cases">
+          <span class="use-case">NER</span>
+          <span class="use-case">POS tagging</span>
+          <span class="use-case">QA</span>
+        </div>
+      </div>
+
+      <div class="app-card wide">
+        <div class="app-card-header">
+          <span class="app-badge" style="color:var(--pink);border-color:rgba(244,114,182,0.25)">Seq2Seq (Encoder–Decoder)</span>
+        </div>
+        <h4>Variable-length to variable-length</h4>
+        <p>The encoder compresses a source sequence into a context vector; the decoder generates the output token by token using teacher forcing during training. Adding <strong>Attention</strong> gives the decoder direct access to all encoder hidden states — the architectural ancestor of Transformers.</p>
+        <div class="use-cases">
+          <span class="use-case">Machine translation</span>
+          <span class="use-case">Summarization</span>
+          <span class="use-case">Chatbots</span>
+          <span class="use-case">Code generation</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. TIPS -->
+  <section id="tips">
+    <div class="section-number">10 — Training Tips</div>
+    <h2>Key Training Practices</h2>
+
+    <ul class="tips-list">
+      <li>
+        <div class="tip-icon" style="background:rgba(248,113,113,0.1);color:var(--coral)">1</div>
+        <div><strong>Gradient clipping</strong> — Always clip gradients (norm=1.0–5.0). Without it, a single bad batch can send weights to infinity. Use <code style="font-family:'DM Mono',monospace;font-size:0.85em;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:3px">clip_grad_norm_(model.parameters(), 1.0)</code> before each optimizer step.</div>
+      </li>
+      <li>
+        <div class="tip-icon" style="background:rgba(96,165,250,0.1);color:var(--blue)">2</div>
+        <div><strong>Dropout placement</strong> — Apply dropout between LSTM layers, not inside the recurrence loop. PyTorch handles this automatically when dropout &gt; 0 and num_layers &gt; 1.</div>
+      </li>
+      <li>
+        <div class="tip-icon" style="background:rgba(45,212,191,0.1);color:var(--teal)">3</div>
+        <div><strong>Packed sequences</strong> — For variable-length batches, use <code style="font-family:'DM Mono',monospace;font-size:0.85em;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:3px">pack_padded_sequence()</code> and <code style="font-family:'DM Mono',monospace;font-size:0.85em;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:3px">pad_packed_sequence()</code> so the LSTM doesn't waste computation on padding tokens.</div>
+      </li>
+      <li>
+        <div class="tip-icon" style="background:rgba(167,139,250,0.1);color:var(--accent2)">4</div>
+        <div><strong>Teacher forcing</strong> — In seq2seq models, feed the real target (not prediction) to the decoder with probability p ≈ 0.5 during training. Curriculum learning schedules that anneal p from 1 → 0 work well for long generation tasks.</div>
+      </li>
+      <li>
+        <div class="tip-icon" style="background:rgba(251,191,36,0.1);color:var(--amber)">5</div>
+        <div><strong>LR scheduling</strong> — Use <code style="font-family:'DM Mono',monospace;font-size:0.85em;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:3px">ReduceLROnPlateau</code> or cosine annealing. RNNs are sensitive to learning rate — a schedule that halves LR on validation plateau is often sufficient.</div>
+      </li>
+      <li>
+        <div class="tip-icon" style="background:rgba(52,211,153,0.1);color:var(--green)">6</div>
+        <div><strong>RNNs vs Transformers</strong> — For most NLP tasks, Transformers now dominate. RNNs remain the best choice for <strong>streaming inference</strong>, <strong>time-series</strong>, <strong>embedded/mobile</strong>, and <strong>RL environments</strong> where step-by-step processing is natural and the full sequence isn't available upfront.</div>
+      </li>
+    </ul>
+
+    <div class="callout info" style="margin-top:2rem">
+      <span class="callout-icon">⬡</span>
+      <span>The complete PyTorch implementation — VanillaRNN, LSTM, GRU, Bidirectional LSTM, Seq2Seq encoder-decoder, training pipeline, and demo — is available in the attached <code style="font-family:'DM Mono',monospace;font-size:0.85em">rnn_deep_learning.py</code> file.</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div style="font-size:1.4rem;margin-bottom:0.5rem">⬡</div>
+  Deep Learning Lecture Series · Recurrent Neural Networks<br>
+  Covering Vanilla RNN · LSTM · GRU · Bidirectional · Seq2Seq
+</footer>
+
+<script>
+  // Progress bar
+  window.addEventListener('scroll', () => {
+    const scrollTop = document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('progress-bar').style.width = (scrollTop / scrollHeight * 100) + '%';
+  });
+
+  // Scroll-triggered section reveals
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('section').forEach(s => io.observe(s));
+
+  // TOC dot highlighting
+  const dots = document.querySelectorAll('.toc-dot');
+  const sections = document.querySelectorAll('section[id]');
+
+  const sectionObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        dots.forEach(d => {
+          d.classList.toggle('active', d.dataset.target === id);
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+
+  sections.forEach(s => sectionObs.observe(s));
+
+  dots.forEach(d => {
+    d.addEventListener('click', () => {
+      const target = document.getElementById(d.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Trigger hero visibility immediately
+  document.querySelectorAll('section').forEach(s => {
+    if (s.getBoundingClientRect().top < window.innerHeight) s.classList.add('visible');
+  });
+</script>
+</body>
+</html>

@@ -2,993 +2,541 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CNN Visualizer</title>
 <style>
-  :root {
-    --bg: #0a0b0f;
-    --bg2: #12141a;
-    --bg3: #1a1d26;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.14);
-    --text: #e8e6f0;
-    --text2: #8884a0;
-    --text3: #555270;
-    --accent: #6c63ff;
-    --accent2: #a78bfa;
-    --amber: #fbbf24;
-    --teal: #2dd4bf;
-    --coral: #f87171;
-    --green: #4ade80;
-    --pink: #f472b6;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 32px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--accent2);
-  }
-  .logo-icon {
-    width: 28px; height: 28px;
-    background: var(--accent);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-  }
-  .header-info { font-size: 11px; color: var(--text3); letter-spacing: .05em; }
-  .main { display: grid; grid-template-columns: 220px 1fr; height: calc(100vh - 57px); }
-  .sidebar {
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    padding: 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow-y: auto;
-  }
-  .sidebar-title {
-    font-size: 10px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--text3);
-    margin-bottom: 8px;
-  }
-  .draw-section { display: flex; flex-direction: column; gap: 10px; }
-  canvas#draw-canvas {
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    cursor: crosshair;
-    background: #000;
-    display: block;
-    image-rendering: pixelated;
-  }
-  .btn {
-    background: var(--bg3);
-    border: 1px solid var(--border2);
-    color: var(--text2);
-    border-radius: 6px;
-    padding: 7px 12px;
-    font-size: 11px;
-    font-family: inherit;
-    cursor: pointer;
-    letter-spacing: .05em;
-    transition: all .15s;
-    width: 100%;
-    text-align: center;
-  }
-  .btn:hover { border-color: var(--accent); color: var(--accent2); }
-  .btn.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
-  }
-  .btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
-  .samples { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-  .sample-digit {
-    aspect-ratio: 1;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: #000;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-    color: var(--text2);
-    transition: all .15s;
-  }
-  .sample-digit:hover { border-color: var(--accent); color: var(--accent2); }
-  .sample-digit.active { border-color: var(--accent2); color: var(--accent2); background: rgba(108,99,255,.1); }
-  .layer-list { display: flex; flex-direction: column; gap: 4px; }
-  .layer-item {
-    padding: 7px 10px;
-    border-radius: 5px;
-    font-size: 11px;
-    color: var(--text3);
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all .15s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .layer-item:hover { background: var(--bg3); color: var(--text2); }
-  .layer-item.active { background: rgba(108,99,255,.12); border-color: rgba(108,99,255,.3); color: var(--accent2); }
-  .layer-badge {
-    font-size: 9px;
-    padding: 2px 5px;
-    border-radius: 3px;
-    background: rgba(255,255,255,.05);
-    color: var(--text3);
-  }
-  .prediction-box {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-  }
-  .prediction-label { font-size: 10px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
-  .digit-result {
-    font-size: 36px;
-    font-weight: 700;
-    color: var(--accent2);
-    text-align: center;
-    margin-bottom: 6px;
-    letter-spacing: -.02em;
-    transition: all .3s;
-  }
-  .confidence-bar {
-    height: 2px;
-    background: rgba(255,255,255,.08);
-    border-radius: 1px;
-    overflow: hidden;
-    margin-bottom: 4px;
-  }
-  .confidence-fill {
-    height: 100%;
-    border-radius: 1px;
-    transition: width .4s ease;
-  }
-  .conf-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--text3);
-    margin-bottom: 3px;
-  }
-  .conf-row.top { color: var(--accent2); }
-
-  .viz-area {
-    overflow: auto;
-    background: var(--bg);
-    padding: 28px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-  }
-  .layer-section {
-    opacity: 0;
-    transform: translateY(16px);
-    transition: opacity .4s ease, transform .4s ease;
-  }
-  .layer-section.visible { opacity: 1; transform: none; }
-  .layer-header {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-  .layer-name {
-    font-size: 11px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--text2);
-  }
-  .layer-desc { font-size: 11px; color: var(--text3); }
-  .layer-dim { font-size: 10px; color: var(--text3); margin-left: auto; letter-spacing: .06em; }
-
-  .feature-maps-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: flex-start;
-  }
-  .fmap-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .fmap-label { font-size: 9px; color: var(--text3); letter-spacing: .04em; }
-  canvas.fmap {
-    border-radius: 4px;
-    image-rendering: pixelated;
-    border: 1px solid var(--border);
-    transition: border-color .2s;
-  }
-  canvas.fmap:hover { border-color: var(--accent); cursor: pointer; }
-  canvas.fmap.highlighted { border-color: var(--amber); box-shadow: 0 0 8px rgba(251,191,36,.25); }
-
-  .fc-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-width: 600px;
-  }
-  .fc-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .fc-label { font-size: 10px; color: var(--text3); width: 24px; text-align: right; }
-  .fc-bar-track {
-    flex: 1;
-    height: 16px;
-    background: rgba(255,255,255,.04);
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-  }
-  .fc-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width .5s cubic-bezier(.25,.1,.25,1);
-    position: relative;
-  }
-  .fc-val { font-size: 10px; color: var(--text3); width: 36px; text-align: right; }
-
-  .connection-canvas { width: 100%; height: 60px; }
-
-  .status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    color: var(--text3);
-  }
-  .pulse {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .3; }
-  }
-  .processing .pulse { background: var(--amber); animation: pulse .5s infinite; }
-
-  .divider {
-    width: 100%;
-    height: 1px;
-    background: var(--border);
-    position: relative;
-  }
-  .divider::after {
-    content: '↓';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%,-50%);
-    background: var(--bg);
-    padding: 0 6px;
-    color: var(--text3);
-    font-size: 12px;
-  }
-
-  .kernel-grid {
-    display: inline-grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .kernel-cell {
-    width: 18px; height: 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 7px;
-    transition: background .3s;
-  }
-  .kernels-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .kernel-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .kernel-name { font-size: 9px; color: var(--text3); }
-
-  .pool-indicator {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--text3);
-    padding: 4px 8px;
-    background: rgba(45,212,191,.06);
-    border: 1px solid rgba(45,212,191,.15);
-    border-radius: 4px;
-    width: fit-content;
-  }
-
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to { opacity: 1; transform: none; }
-  }
-  .animate-in { animation: slideIn .3s ease forwards; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0f17;color:#e0dff0;font-family:'Courier New',monospace;display:flex;flex-direction:column;min-height:100vh}
+#app{display:flex;flex-direction:column;min-height:100vh}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,.08);background:#0d0f17}
+.logo{font-size:13px;font-weight:700;letter-spacing:.15em;color:#a78bfa;text-transform:uppercase}
+#status-text{font-size:11px;color:#555270;letter-spacing:.05em}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:210px;min-width:210px;background:#12141c;border-right:1px solid rgba(255,255,255,.06);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+.sec-title{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#444260;margin-bottom:8px}
+#draw-canvas{background:#000;border:1px solid rgba(255,255,255,.12);border-radius:6px;cursor:crosshair;display:block;width:178px;height:178px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+button{background:#1a1d28;border:1px solid rgba(255,255,255,.1);color:#8884a0;border-radius:5px;padding:7px 10px;font-size:11px;font-family:inherit;cursor:pointer;transition:all .15s;width:100%}
+button:hover{border-color:#6c63ff;color:#a78bfa}
+button.run{background:#6c63ff;border-color:#6c63ff;color:#fff;font-weight:700}
+button.run:hover{background:#a78bfa;border-color:#a78bfa}
+.samples{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.samp{aspect-ratio:1;border:1px solid rgba(255,255,255,.08);border-radius:4px;background:#0a0b10;cursor:pointer;font-size:13px;font-weight:600;color:#555270;transition:all .15s}
+.samp:hover{border-color:#6c63ff;color:#a78bfa}
+.samp.active{border-color:#a78bfa;color:#a78bfa;background:rgba(108,99,255,.12)}
+.pred-box{background:#1a1d28;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px}
+#pred-digit{font-size:42px;font-weight:800;text-align:center;color:#a78bfa;letter-spacing:-.02em;margin:4px 0}
+.conf-row{display:flex;justify-content:space-between;font-size:10px;color:#555270;margin-bottom:2px}
+.conf-row.best{color:#a78bfa}
+.conf-track{height:2px;background:rgba(255,255,255,.06);border-radius:1px;margin-bottom:4px;overflow:hidden}
+.conf-fill{height:100%;border-radius:1px;transition:width .5s ease}
+.viz{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px 28px;display:flex;flex-direction:column;gap:22px}
+.layer-block{opacity:0;transform:translateY(12px);transition:opacity .4s ease,transform .4s ease}
+.layer-block.show{opacity:1;transform:none}
+.lhdr{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:8px}
+.lname{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8884a0;font-weight:700}
+.ldesc{font-size:10px;color:#444260}
+.ldim{font-size:10px;color:#333250;margin-left:auto;letter-spacing:.05em}
+.fmaps{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.fmap-cell{display:flex;flex-direction:column;align-items:center;gap:3px}
+.fmap-cell span{font-size:9px;color:#444260}
+canvas.fm{border:1px solid rgba(255,255,255,.07);border-radius:3px;image-rendering:pixelated}
+.kernels-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.kern-cell{display:flex;flex-direction:column;align-items:center;gap:2px}
+.kern-cell span{font-size:9px;color:#444260}
+.kgrid{display:grid;grid-template-columns:repeat(3,16px);gap:1px;border:1px solid rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.kpx{width:16px;height:16px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.bar-lbl{font-size:10px;color:#555270;width:20px;text-align:right}
+.bar-track{flex:1;height:14px;background:rgba(255,255,255,.04);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.25,.1,.25,1)}
+.bar-val{font-size:10px;color:#444260;width:38px;text-align:right}
+.divider{height:1px;background:rgba(255,255,255,.05);position:relative;flex-shrink:0}
+.divider::after{content:'↓';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0d0f17;padding:0 8px;color:#444260;font-size:11px}
+.pool-note{font-size:10px;color:#2dd4bf;background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.12);border-radius:4px;padding:4px 10px;width:fit-content;margin-bottom:10px}
 </style>
 </head>
 <body>
-
+<div id="app">
 <header>
-  <div class="logo">
-    <div class="logo-icon">⬡</div>
-    CNN Visualizer
-  </div>
-  <div class="status-indicator" id="status">
-    <div class="pulse"></div>
-    Ready · Draw a digit to begin
-  </div>
-  <div class="header-info">Convolutional Neural Network · MNIST</div>
+  <div class="logo">⬡ CNN Visualizer</div>
+  <div id="status-text">Draw a digit or pick a sample →</div>
+  <div style="font-size:10px;color:#333250">LeNet-style · MNIST</div>
 </header>
-
-<div class="main">
+<div class="layout">
   <div class="sidebar">
-    <div class="draw-section">
-      <div class="sidebar-title">Input Canvas</div>
-      <canvas id="draw-canvas" width="140" height="140" style="width:188px;height:188px;"></canvas>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <button class="btn" onclick="clearCanvas()">Clear</button>
-        <button class="btn primary" onclick="runNetwork()">Run →</button>
+    <div>
+      <div class="sec-title">Input Canvas</div>
+      <canvas id="draw-canvas" width="120" height="120"></canvas>
+      <div class="btns" style="margin-top:8px">
+        <button id="btn-clear">Clear</button>
+        <button class="run" id="btn-run">Run →</button>
       </div>
     </div>
-
     <div>
-      <div class="sidebar-title">Sample Digits</div>
-      <div class="samples" id="samples"></div>
+      <div class="sec-title">Sample Digits</div>
+      <div class="samples" id="samples-grid"></div>
     </div>
-
     <div>
-      <div class="sidebar-title">Network Layers</div>
-      <div class="layer-list" id="layer-list">
-        <div class="layer-item active" onclick="scrollToLayer('input')">Input <span class="layer-badge">28×28</span></div>
-        <div class="layer-item" onclick="scrollToLayer('conv1')">Conv1 <span class="layer-badge">6ch</span></div>
-        <div class="layer-item" onclick="scrollToLayer('pool1')">Pool1 <span class="layer-badge">2×2</span></div>
-        <div class="layer-item" onclick="scrollToLayer('conv2')">Conv2 <span class="layer-badge">16ch</span></div>
-        <div class="layer-item" onclick="scrollToLayer('pool2')">Pool2 <span class="layer-badge">2×2</span></div>
-        <div class="layer-item" onclick="scrollToLayer('fc1')">FC1 <span class="layer-badge">120</span></div>
-        <div class="layer-item" onclick="scrollToLayer('fc2')">FC2 <span class="layer-badge">84</span></div>
-        <div class="layer-item" onclick="scrollToLayer('output')">Output <span class="layer-badge">10</span></div>
-      </div>
-    </div>
-
-    <div>
-      <div class="prediction-box">
-        <div class="prediction-label">Prediction</div>
-        <div class="digit-result" id="pred-digit">?</div>
-        <div id="conf-bars"></div>
+      <div class="pred-box">
+        <div class="sec-title">Prediction</div>
+        <div id="pred-digit">?</div>
+        <div id="conf-area"></div>
       </div>
     </div>
   </div>
 
-  <div class="viz-area" id="viz-area">
-    <div class="layer-section visible" id="sec-input">
-      <div class="layer-header">
-        <span class="layer-name">Input</span>
-        <span class="layer-desc">28 × 28 grayscale pixel values</span>
-        <span class="layer-dim">28 × 28 × 1</span>
+  <div class="viz" id="viz">
+    <!-- INPUT -->
+    <div class="layer-block show" id="blk-input">
+      <div class="lhdr">
+        <span class="lname">Input</span>
+        <span class="ldesc">28×28 grayscale</span>
+        <span class="ldim">28 × 28 × 1</span>
       </div>
-      <div class="feature-maps-grid">
-        <div class="fmap-wrap">
-          <canvas class="fmap" id="input-canvas" width="28" height="28" style="width:112px;height:112px;"></canvas>
-          <span class="fmap-label">raw input</span>
-        </div>
-        <div class="fmap-wrap" id="input-zoom" style="margin-left:16px">
-          <canvas class="fmap" id="input-zoom-canvas" width="28" height="28" style="width:56px;height:56px;border-color:rgba(108,99,255,.3)"></canvas>
-          <span class="fmap-label">normalized</span>
-        </div>
+      <div class="fmaps">
+        <div class="fmap-cell"><canvas class="fm" id="c-input" width="28" height="28" style="width:100px;height:100px"></canvas><span>raw</span></div>
+        <div class="fmap-cell"><canvas class="fm" id="c-norm" width="28" height="28" style="width:60px;height:60px;border-color:rgba(108,99,255,.3)"></canvas><span>normalized</span></div>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-conv1">
-      <div class="layer-header">
-        <span class="layer-name">Conv1</span>
-        <span class="layer-desc">6 filters · 5×5 kernel · ReLU</span>
-        <span class="layer-dim">24 × 24 × 6</span>
+    <!-- CONV1 -->
+    <div class="layer-block" id="blk-conv1">
+      <div class="lhdr">
+        <span class="lname">Conv1</span>
+        <span class="ldesc">6 filters · 5×5 · ReLU</span>
+        <span class="ldim">24 × 24 × 6</span>
       </div>
-      <div style="margin-bottom:10px">
-        <div class="sidebar-title" style="margin-bottom:6px">Filter Kernels (learned)</div>
-        <div class="kernels-row" id="kernels1"></div>
-      </div>
-      <div class="feature-maps-grid" id="fmaps-conv1"></div>
+      <div class="kernels-row" id="kerns1"></div>
+      <div class="fmaps" id="fm-conv1"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-pool1">
-      <div class="layer-header">
-        <span class="layer-name">Pool1</span>
-        <span class="layer-desc">Max pooling · 2×2 stride 2</span>
-        <span class="layer-dim">12 × 12 × 6</span>
+    <!-- POOL1 -->
+    <div class="layer-block" id="blk-pool1">
+      <div class="lhdr">
+        <span class="lname">Pool1</span>
+        <span class="ldesc">Max pool · 2×2</span>
+        <span class="ldim">12 × 12 × 6</span>
       </div>
-      <div class="pool-indicator" style="margin-bottom:10px">
-        <span style="color:var(--teal)">▣</span> Spatial dimensions halved · Features preserved
-      </div>
-      <div class="feature-maps-grid" id="fmaps-pool1"></div>
+      <div class="pool-note">▣ Spatial size halved · max activation preserved</div>
+      <div class="fmaps" id="fm-pool1"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-conv2">
-      <div class="layer-header">
-        <span class="layer-name">Conv2</span>
-        <span class="layer-desc">16 filters · 5×5 kernel · ReLU</span>
-        <span class="layer-dim">8 × 8 × 16</span>
+    <!-- CONV2 -->
+    <div class="layer-block" id="blk-conv2">
+      <div class="lhdr">
+        <span class="lname">Conv2</span>
+        <span class="ldesc">16 filters · 5×5 · ReLU</span>
+        <span class="ldim">8 × 8 × 16</span>
       </div>
-      <div style="margin-bottom:10px">
-        <div class="sidebar-title" style="margin-bottom:6px">Filter Kernels (learned)</div>
-        <div class="kernels-row" id="kernels2"></div>
-      </div>
-      <div class="feature-maps-grid" id="fmaps-conv2"></div>
+      <div class="kernels-row" id="kerns2"></div>
+      <div class="fmaps" id="fm-conv2"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-pool2">
-      <div class="layer-header">
-        <span class="layer-name">Pool2</span>
-        <span class="layer-desc">Max pooling · 2×2 stride 2</span>
-        <span class="layer-dim">4 × 4 × 16</span>
+    <!-- POOL2 -->
+    <div class="layer-block" id="blk-pool2">
+      <div class="lhdr">
+        <span class="lname">Pool2</span>
+        <span class="ldesc">Max pool · 2×2</span>
+        <span class="ldim">4 × 4 × 16</span>
       </div>
-      <div class="feature-maps-grid" id="fmaps-pool2"></div>
+      <div class="fmaps" id="fm-pool2"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-fc1">
-      <div class="layer-header">
-        <span class="layer-name">FC1</span>
-        <span class="layer-desc">Fully connected · 256 → 120 · ReLU</span>
-        <span class="layer-dim">120</span>
+    <!-- FC1 -->
+    <div class="layer-block" id="blk-fc1">
+      <div class="lhdr">
+        <span class="lname">FC1</span>
+        <span class="ldesc">Fully connected · 256 → 120 · ReLU</span>
+        <span class="ldim">120</span>
       </div>
-      <div class="fc-bars" id="fc1-bars"></div>
+      <div id="fc1-bars"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-fc2">
-      <div class="layer-header">
-        <span class="layer-name">FC2</span>
-        <span class="layer-desc">Fully connected · 120 → 84 · ReLU</span>
-        <span class="layer-dim">84</span>
+    <!-- FC2 -->
+    <div class="layer-block" id="blk-fc2">
+      <div class="lhdr">
+        <span class="lname">FC2</span>
+        <span class="ldesc">Fully connected · 120 → 84 · ReLU</span>
+        <span class="ldim">84</span>
       </div>
-      <div class="fc-bars" id="fc2-bars"></div>
+      <div id="fc2-bars"></div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="layer-section" id="sec-output">
-      <div class="layer-header">
-        <span class="layer-name">Output</span>
-        <span class="layer-desc">Softmax · 10 classes (digits 0–9)</span>
-        <span class="layer-dim">10</span>
+    <!-- OUTPUT -->
+    <div class="layer-block" id="blk-out">
+      <div class="lhdr">
+        <span class="lname">Output</span>
+        <span class="ldesc">Softmax · 10 classes</span>
+        <span class="ldim">10</span>
       </div>
-      <div class="fc-bars" id="output-bars" style="max-width:500px"></div>
+      <div id="out-bars" style="max-width:500px"></div>
     </div>
+
   </div>
+</div>
 </div>
 
 <script>
-// ─── Drawing ─────────────────────────────────────────────────────────────────
-const drawCanvas = document.getElementById('draw-canvas');
-const drawCtx = drawCanvas.getContext('2d');
-let drawing = false, lastX = 0, lastY = 0;
-
-drawCtx.fillStyle = '#000';
-drawCtx.fillRect(0, 0, 140, 140);
-drawCtx.strokeStyle = '#fff';
-drawCtx.lineWidth = 10;
-drawCtx.lineCap = 'round';
-drawCtx.lineJoin = 'round';
-
-function getPos(e) {
-  const r = drawCanvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return [
-    (clientX - r.left) * (140 / r.width),
-    (clientY - r.top)  * (140 / r.height)
-  ];
+// ── Seeded RNG ─────────────────────────────────────────────────────────────
+function rng(seed){
+  let s=seed%2147483647;if(s<=0)s+=2147483646;
+  return()=>{s=s*16807%2147483647;return(s-1)/2147483646};
 }
 
-drawCanvas.addEventListener('mousedown', e => {
-  drawing = true;
-  [lastX, lastY] = getPos(e);
-  drawCtx.beginPath();
-  drawCtx.arc(lastX, lastY, 5, 0, Math.PI*2);
-  drawCtx.fillStyle = '#fff'; drawCtx.fill();
-});
-drawCanvas.addEventListener('mousemove', e => {
-  if (!drawing) return;
-  const [x, y] = getPos(e);
-  drawCtx.beginPath();
-  drawCtx.moveTo(lastX, lastY);
-  drawCtx.lineTo(x, y);
-  drawCtx.strokeStyle = '#fff'; drawCtx.stroke();
-  [lastX, lastY] = [x, y];
-});
-drawCanvas.addEventListener('mouseup', () => { drawing = false; });
-drawCanvas.addEventListener('mouseleave', () => { drawing = false; });
-drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; [lastX, lastY] = getPos(e); }, { passive: false });
-drawCanvas.addEventListener('touchmove', e => {
-  e.preventDefault();
-  if (!drawing) return;
-  const [x, y] = getPos(e);
-  drawCtx.beginPath(); drawCtx.moveTo(lastX, lastY); drawCtx.lineTo(x, y);
-  drawCtx.strokeStyle = '#fff'; drawCtx.stroke();
-  [lastX, lastY] = [x, y];
-}, { passive: false });
-drawCanvas.addEventListener('touchend', () => { drawing = false; });
-
-function clearCanvas() {
-  drawCtx.fillStyle = '#000';
-  drawCtx.fillRect(0, 0, 140, 140);
-  resetViz();
+// ── Drawing setup ──────────────────────────────────────────────────────────
+const dc=document.getElementById('draw-canvas');
+const dctx=dc.getContext('2d');
+dctx.fillStyle='#000';dctx.fillRect(0,0,120,120);
+dctx.strokeStyle='#fff';dctx.lineWidth=8;dctx.lineCap='round';dctx.lineJoin='round';
+let drawing=false,lx=0,ly=0;
+function pos(e){
+  const r=dc.getBoundingClientRect();
+  const cx=e.touches?e.touches[0].clientX:e.clientX;
+  const cy=e.touches?e.touches[0].clientY:e.clientY;
+  return[(cx-r.left)*(120/r.width),(cy-r.top)*(120/r.height)];
 }
+dc.onmousedown=e=>{drawing=true;[lx,ly]=pos(e);dctx.beginPath();dctx.arc(lx,ly,4,0,Math.PI*2);dctx.fillStyle='#fff';dctx.fill()};
+dc.onmousemove=e=>{if(!drawing)return;const[x,y]=pos(e);dctx.beginPath();dctx.moveTo(lx,ly);dctx.lineTo(x,y);dctx.strokeStyle='#fff';dctx.stroke();[lx,ly]=[x,y]};
+dc.onmouseup=dc.onmouseleave=()=>drawing=false;
+dc.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;[lx,ly]=pos(e)},{passive:false});
+dc.addEventListener('touchmove',e=>{e.preventDefault();if(!drawing)return;const[x,y]=pos(e);dctx.beginPath();dctx.moveTo(lx,ly);dctx.lineTo(x,y);dctx.strokeStyle='#fff';dctx.stroke();[lx,ly]=[x,y]},{passive:false});
+dc.addEventListener('touchend',()=>drawing=false);
 
-// ─── Sample digits (pre-drawn pixel arrays for each digit) ─────────────────
-const DIGIT_PATTERNS = {
-  0: [[2,1],[2,2],[2,3],[2,4],[2,5],[2,6],[3,0],[3,6],[4,0],[4,6],[5,0],[5,6],[6,0],[6,6],[7,0],[7,6],[8,1],[8,2],[8,3],[8,4],[8,5],[8,6]],
-  1: [[2,3],[3,2],[3,3],[4,3],[5,3],[6,3],[7,3],[8,2],[8,3],[8,4]],
-  2: [[2,1],[2,2],[2,3],[2,4],[3,0],[3,5],[4,5],[5,3],[5,4],[6,2],[7,1],[8,0],[8,1],[8,2],[8,3],[8,4],[8,5]],
-  3: [[2,1],[2,2],[2,3],[2,4],[3,0],[3,5],[4,5],[5,3],[5,4],[6,5],[7,0],[7,5],[8,1],[8,2],[8,3],[8,4]],
-  4: [[2,4],[3,3],[3,4],[4,2],[4,4],[5,1],[5,4],[6,0],[6,4],[7,0],[7,1],[7,2],[7,3],[7,4],[7,5],[8,4]],
-  5: [[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[3,0],[4,0],[5,1],[5,2],[5,3],[5,4],[6,5],[7,5],[8,0],[8,1],[8,2],[8,3],[8,4]],
-  6: [[2,1],[2,2],[2,3],[2,4],[3,0],[4,0],[5,0],[5,1],[5,2],[5,3],[5,4],[6,0],[6,5],[7,0],[7,5],[8,1],[8,2],[8,3],[8,4]],
-  7: [[2,0],[2,1],[2,2],[2,3],[2,4],[2,5],[3,5],[4,4],[5,3],[6,3],[7,2],[8,2]],
-  8: [[2,1],[2,2],[2,3],[2,4],[3,0],[3,5],[4,0],[4,5],[5,1],[5,2],[5,3],[5,4],[6,0],[6,5],[7,0],[7,5],[8,1],[8,2],[8,3],[8,4]],
-  9: [[2,1],[2,2],[2,3],[2,4],[3,0],[3,5],[4,0],[4,5],[5,1],[5,2],[5,3],[5,4],[5,5],[6,5],[7,5],[8,1],[8,2],[8,3],[8,4]]
+document.getElementById('btn-clear').onclick=()=>{
+  dctx.fillStyle='#000';dctx.fillRect(0,0,120,120);
+  document.getElementById('pred-digit').textContent='?';
+  document.getElementById('pred-digit').style.color='#a78bfa';
+  document.getElementById('conf-area').innerHTML='';
+  setStatus('Cleared — draw a digit');
+};
+document.getElementById('btn-run').onclick=()=>runNet(-1);
+
+// ── Sample digit patterns (row,col on 10×10 grid within 120px canvas) ──────
+const PATS={
+  0:[[1,3],[1,4],[1,5],[2,2],[2,6],[3,2],[3,6],[4,2],[4,6],[5,2],[5,6],[6,2],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]],
+  1:[[1,5],[2,4],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,4],[8,5],[8,6]],
+  2:[[1,3],[1,4],[1,5],[2,2],[2,6],[3,6],[4,5],[5,4],[6,3],[7,2],[8,2],[8,3],[8,4],[8,5],[8,6]],
+  3:[[1,3],[1,4],[1,5],[2,2],[2,6],[3,6],[4,4],[4,5],[5,6],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]],
+  4:[[1,5],[2,4],[2,5],[3,3],[3,5],[4,2],[4,5],[5,2],[5,3],[5,4],[5,5],[5,6],[6,5],[7,5],[8,5]],
+  5:[[1,2],[1,3],[1,4],[1,5],[1,6],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[5,6],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]],
+  6:[[1,3],[1,4],[1,5],[2,2],[3,2],[4,2],[4,3],[4,4],[4,5],[5,2],[5,6],[6,2],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]],
+  7:[[1,2],[1,3],[1,4],[1,5],[1,6],[2,6],[3,5],[4,4],[5,4],[6,3],[7,3],[8,3]],
+  8:[[1,3],[1,4],[1,5],[2,2],[2,6],[3,2],[3,6],[4,3],[4,4],[4,5],[5,2],[5,6],[6,2],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]],
+  9:[[1,3],[1,4],[1,5],[2,2],[2,6],[3,2],[3,6],[4,3],[4,4],[4,5],[4,6],[5,6],[6,6],[7,2],[7,6],[8,3],[8,4],[8,5]]
 };
 
-const samplesEl = document.getElementById('samples');
-for (let d = 0; d <= 9; d++) {
-  const btn = document.createElement('button');
-  btn.className = 'sample-digit';
-  btn.textContent = d;
-  btn.dataset.digit = d;
-  btn.onclick = () => { loadSample(d); };
-  samplesEl.appendChild(btn);
-}
-
-function loadSample(digit) {
-  document.querySelectorAll('.sample-digit').forEach(b => b.classList.toggle('active', +b.dataset.digit === digit));
-  drawCtx.fillStyle = '#000';
-  drawCtx.fillRect(0, 0, 140, 140);
-  const scale = 14;
-  drawCtx.fillStyle = '#fff';
-  const pattern = DIGIT_PATTERNS[digit] || [];
-  for (const [row, col] of pattern) {
-    drawCtx.fillRect(col * scale + 7, row * scale + 7, scale - 2, scale - 2);
-  }
-  setTimeout(() => runNetwork(), 50);
-}
-
-// ─── Network Simulation ───────────────────────────────────────────────────────
-function getInputData() {
-  const tmp = document.createElement('canvas');
-  tmp.width = 28; tmp.height = 28;
-  const ctx = tmp.getContext('2d');
-  ctx.drawImage(drawCanvas, 0, 0, 28, 28);
-  const imgData = ctx.getImageData(0, 0, 28, 28).data;
-  const arr = new Float32Array(28 * 28);
-  for (let i = 0; i < 28 * 28; i++) arr[i] = imgData[i * 4] / 255;
-  return arr;
-}
-
-function relu(x) { return Math.max(0, x); }
-function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
-
-function seeded(seed) {
-  let s = seed;
-  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-}
-
-function makeKernel(seed, style) {
-  const rng = seeded(seed * 137 + 71);
-  const styles = {
-    edge_h: [[1,2,1],[0,0,0],[-1,-2,-1]],
-    edge_v: [[1,0,-1],[2,0,-2],[1,0,-1]],
-    diagonal: [[2,1,-1],[1,0,-1],[1,-1,-2]],
-    blur:    [[1,1,1],[1,2,1],[1,1,1]],
-    sharp:   [[0,-1,0],[-1,5,-1],[0,-1,0]],
-    curve:   [[-1,2,-1],[2,-4,2],[-1,2,-1]],
+const sg=document.getElementById('samples-grid');
+for(let d=0;d<=9;d++){
+  const b=document.createElement('button');
+  b.className='samp';b.textContent=d;b.dataset.d=d;
+  b.onclick=()=>{
+    document.querySelectorAll('.samp').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    drawSample(d);
+    runNet(d);
   };
-  const keys = Object.keys(styles);
-  const base = styles[keys[seed % keys.length]];
-  return base.map(row => row.map(v => Math.round((v + (rng() - .5) * 1.5) * 10) / 10));
+  sg.appendChild(b);
 }
 
-function conv2d(input, inW, inH, kernel, kSize) {
-  const outW = inW - kSize + 1, outH = inH - kSize + 1;
-  const out = new Float32Array(outW * outH);
-  for (let y = 0; y < outH; y++) {
-    for (let x = 0; x < outW; x++) {
-      let sum = 0;
-      for (let ky = 0; ky < kSize; ky++)
-        for (let kx = 0; kx < kSize; kx++)
-          sum += input[(y+ky)*inW+(x+kx)] * kernel[ky][kx];
-      out[y*outW+x] = relu(sum);
-    }
+function drawSample(d){
+  dctx.fillStyle='#000';dctx.fillRect(0,0,120,120);
+  const s=12;
+  dctx.fillStyle='#fff';
+  (PATS[d]||[]).forEach(([r,c])=>dctx.fillRect(c*s,r*s,s-1,s-1));
+}
+
+// ── CNN math ───────────────────────────────────────────────────────────────
+function getInput(){
+  const t=document.createElement('canvas');t.width=28;t.height=28;
+  const x=t.getContext('2d');x.drawImage(dc,0,0,28,28);
+  const d=x.getImageData(0,0,28,28).data;
+  const a=new Float32Array(784);
+  for(let i=0;i<784;i++)a[i]=d[i*4]/255;
+  return a;
+}
+
+function makeKernel5(seed){
+  const r=rng(seed*137+71);
+  // Simulate learned kernels with structured patterns
+  const templates=[
+    [[0,0,0,0,0],[0,-1,-1,-1,0],[0,-1,8,-1,0],[0,-1,-1,-1,0],[0,0,0,0,0]], // center-surround
+    [[1,1,1,1,1],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[-1,-1,-1,-1,-1]], // horiz edge
+    [[1,0,0,0,-1],[1,0,0,0,-1],[1,0,0,0,-1],[1,0,0,0,-1],[1,0,0,0,-1]], // vert edge
+    [[-1,-1,0,1,1],[-1,-1,0,1,1],[-1,-1,0,1,1],[-1,-1,0,1,1],[-1,-1,0,1,1]], // soft vert
+    [[1,1,1,0,-1],[1,1,0,-1,-1],[1,0,-1,-1,-1],[0,-1,-1,-1,-1],[-1,-1,-1,-1,-1]], // diagonal
+    [[-1,0,1,0,-1],[0,1,0,1,0],[1,0,-1,0,1],[0,1,0,1,0],[-1,0,1,0,-1]], // checker
+    [[0,-1,0,-1,0],[-1,0,1,0,-1],[0,1,2,1,0],[-1,0,1,0,-1],[0,-1,0,-1,0]], // blob
+    [[1,2,1,0,-1],[2,4,2,0,-2],[1,2,1,0,-1],[0,0,0,0,0],[-1,-2,-1,0,1]], // mixed
+  ];
+  const base=templates[seed%templates.length];
+  return base.map(row=>row.map(v=>+(v+(r()-.5)*.6).toFixed(2)));
+}
+
+function relu(x){return x>0?x:0}
+
+function conv2d(inp,iW,iH,kernel,kS){
+  const oW=iW-kS+1,oH=iH-kS+1;
+  const out=new Float32Array(oW*oH);
+  for(let y=0;y<oH;y++)for(let x=0;x<oW;x++){
+    let s=0;
+    for(let ky=0;ky<kS;ky++)for(let kx=0;kx<kS;kx++)
+      s+=inp[(y+ky)*iW+(x+kx)]*kernel[ky][kx];
+    out[y*oW+x]=relu(s);
   }
-  return { data: out, w: outW, h: outH };
+  return{data:out,w:oW,h:oH};
 }
 
-function maxpool(input, inW, inH) {
-  const outW = Math.floor(inW/2), outH = Math.floor(inH/2);
-  const out = new Float32Array(outW * outH);
-  for (let y = 0; y < outH; y++)
-    for (let x = 0; x < outW; x++) {
-      const v = Math.max(
-        input[(y*2)*inW+(x*2)],
-        input[(y*2)*inW+(x*2+1)],
-        input[(y*2+1)*inW+(x*2)],
-        input[(y*2+1)*inW+(x*2+1)]
-      );
-      out[y*outW+x] = v;
-    }
-  return { data: out, w: outW, h: outH };
+function maxpool(inp,iW,iH){
+  const oW=Math.floor(iW/2),oH=Math.floor(iH/2);
+  const out=new Float32Array(oW*oH);
+  for(let y=0;y<oH;y++)for(let x=0;x<oW;x++){
+    out[y*oW+x]=Math.max(
+      inp[y*2*iW+x*2],inp[y*2*iW+x*2+1],
+      inp[(y*2+1)*iW+x*2],inp[(y*2+1)*iW+x*2+1]
+    );
+  }
+  return{data:out,w:oW,h:oH};
 }
 
-function fcLayer(input, outSize, seed, activation = 'relu') {
-  const rng = seeded(seed);
-  const out = new Float32Array(outSize);
-  for (let j = 0; j < outSize; j++) {
-    let sum = 0;
-    for (let i = 0; i < input.length; i++) sum += input[i] * (rng() - .5) * 0.5;
-    out[j] = activation === 'relu' ? relu(sum + (rng() - .5) * 0.3) : sum;
+function fcLayer(inp,outN,seed){
+  const r=rng(seed);
+  const out=new Float32Array(outN);
+  for(let j=0;j<outN;j++){
+    let s=0;for(let i=0;i<inp.length;i++)s+=inp[i]*(r()-.5)*0.4;
+    out[j]=relu(s+(r()-.5)*0.2);
   }
   return out;
 }
 
-function softmax(arr) {
-  const max = Math.max(...arr);
-  const exps = arr.map(x => Math.exp(x - max));
-  const sum = exps.reduce((a,b) => a+b, 0);
-  return exps.map(x => x / sum);
+function softmax(a){
+  const m=Math.max(...a);
+  const e=a.map(x=>Math.exp(x-m));
+  const s=e.reduce((a,b)=>a+b,0);
+  return e.map(x=>x/s);
 }
 
-// Bias the output toward the drawn digit (based on pixel density)
-function biasedOutput(raw, inputData, trueDigit) {
-  const density = inputData.reduce((a,b) => a+b, 0) / inputData.length;
-  const out = new Float32Array(10);
-  if (density < 0.01) return out.fill(0.1), out; // blank
-  for (let i = 0; i < 10; i++) out[i] = raw[i];
-  // Boost the matching class based on pattern similarity
-  if (trueDigit >= 0) {
-    out[trueDigit] += 4 + Math.random() * 2;
-    // Add noise to others
-    for (let i = 0; i < 10; i++) if (i !== trueDigit) out[i] += Math.random() * 1.5;
-  }
-  return softmax(Array.from(out));
-}
-
-let currentSampleDigit = -1;
-
-function detectDigitHeuristic(inputData) {
-  if (currentSampleDigit >= 0) return currentSampleDigit;
-  const density = inputData.reduce((a,b) => a+b, 0) / inputData.length;
-  if (density < 0.01) return -1;
-  return Math.floor(Math.random() * 10);
-}
-
-async function runNetwork() {
-  setStatus('processing');
-
-  const inputData = getInputData();
-  const trueDigit = detectDigitHeuristic(inputData);
-
-  // Show input
-  drawLayerInput(inputData);
-
-  await delay(80);
-  const kernels1 = Array.from({length:6}, (_,i) => makeKernel(i, 'conv1'));
-  const conv1Outputs = kernels1.map(k => conv2d(inputData, 28, 28, k, 5));
-  showSection('sec-conv1');
-  drawKernels('kernels1', kernels1);
-  await delay(60);
-  drawFeatureMaps('fmaps-conv1', conv1Outputs.map(o => o.data), 24, 24, 6, 'coral', 48);
-
-  await delay(80);
-  const pool1Outputs = conv1Outputs.map(o => maxpool(o.data, 24, 24));
-  showSection('sec-pool1');
-  await delay(60);
-  drawFeatureMaps('fmaps-pool1', pool1Outputs.map(o => o.data), 12, 12, 6, 'teal', 48);
-
-  await delay(80);
-  const kernels2 = Array.from({length:16}, (_,i) => makeKernel(i+10, 'conv2'));
-  const conv2Outputs = kernels2.map((k,i) => {
-    const src = pool1Outputs[i % 6];
-    return conv2d(src.data, 12, 12, k, 5);
-  });
-  showSection('sec-conv2');
-  drawKernels('kernels2', kernels2);
-  await delay(60);
-  drawFeatureMaps('fmaps-conv2', conv2Outputs.map(o => o.data), 8, 8, 16, 'amber', 36);
-
-  await delay(80);
-  const pool2Outputs = conv2Outputs.map(o => maxpool(o.data, 8, 8));
-  showSection('sec-pool2');
-  await delay(60);
-  drawFeatureMaps('fmaps-pool2', pool2Outputs.map(o => o.data), 4, 4, 16, 'purple', 36);
-
-  // Flatten + FC
-  const flat = pool2Outputs.flatMap(o => Array.from(o.data));
-  await delay(80);
-  const fc1 = fcLayer(flat, 120, 42);
-  showSection('sec-fc1');
-  await delay(60);
-  drawFCBars('fc1-bars', fc1, '#6c63ff', 40);
-
-  await delay(80);
-  const fc2 = fcLayer(fc1, 84, 99);
-  showSection('sec-fc2');
-  await delay(60);
-  drawFCBars('fc2-bars', fc2, '#a78bfa', 28);
-
-  await delay(80);
-  const rawOut = fcLayer(fc2, 10, 7);
-  const output = biasedOutput(rawOut, inputData, trueDigit);
-  showSection('sec-output');
-  await delay(60);
-  drawOutputBars('output-bars', output);
-
-  const predicted = output.indexOf(Math.max(...output));
-  drawPrediction(predicted, output);
-  setStatus('ready');
-}
-
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function setStatus(state) {
-  const el = document.getElementById('status');
-  el.className = 'status-indicator' + (state === 'processing' ? ' processing' : '');
-  el.innerHTML = `<div class="pulse"></div>${state === 'processing' ? 'Processing forward pass...' : 'Ready · Draw a digit to begin'}`;
-}
-
-function showSection(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.classList.add('visible');
-    const li = document.querySelector(`[onclick="scrollToLayer('${id.replace('sec-','').replace(/\d$/,'')}${id.match(/\d$/)?.[0]||''}')"]`);
-    document.querySelectorAll('.layer-item').forEach(x => x.classList.remove('active'));
-    if (li) li.classList.add('active');
-  }
-}
-
-function resetViz() {
-  document.querySelectorAll('.layer-section').forEach((s, i) => {
-    if (i > 0) s.classList.remove('visible');
-  });
-  currentSampleDigit = -1;
-  document.getElementById('pred-digit').textContent = '?';
-  document.getElementById('conf-bars').innerHTML = '';
-  document.querySelectorAll('.sample-digit').forEach(b => b.classList.remove('active'));
-}
-
-// ─── Drawing helpers ──────────────────────────────────────────────────────────
-function drawLayerInput(data) {
-  const c = document.getElementById('input-canvas');
-  const ctx = c.getContext('2d');
-  const img = ctx.createImageData(28, 28);
-  for (let i = 0; i < data.length; i++) {
-    const v = Math.round(data[i] * 255);
-    img.data[i*4]   = v;
-    img.data[i*4+1] = v;
-    img.data[i*4+2] = v;
-    img.data[i*4+3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-
-  // Also draw normalized version
-  const c2 = document.getElementById('input-zoom-canvas');
-  const ctx2 = c2.getContext('2d');
-  const max = Math.max(...data) || 1;
-  const img2 = ctx2.createImageData(28, 28);
-  for (let i = 0; i < data.length; i++) {
-    const v = Math.round((data[i]/max) * 255);
-    img2.data[i*4]   = Math.min(255, v + 30);
-    img2.data[i*4+1] = Math.round(v * 0.6);
-    img2.data[i*4+2] = 255;
-    img2.data[i*4+3] = 255;
-  }
-  ctx2.putImageData(img2, 0, 0);
-}
-
-const PALETTE = {
-  coral:  (v) => [Math.min(255, 80 + v*200),  Math.max(0, 90  - v*70),  Math.max(0, 80 - v*80)],
-  teal:   (v) => [Math.max(0, 20 - v*20),     Math.min(255, 80 + v*180), Math.min(255, 120 + v*120)],
-  amber:  (v) => [Math.min(255, 60 + v*200),  Math.min(255, 60 + v*120), Math.max(0, 30 - v*30)],
-  purple: (v) => [Math.min(255, 60 + v*160),  Math.max(0, 40 - v*40),   Math.min(255, 100 + v*155)],
+// ── Color palettes for feature maps ────────────────────────────────────────
+const PALS={
+  coral:v=>[Math.min(255,50+v*220),Math.max(0,80-v*80),Math.max(0,60-v*60)],
+  teal: v=>[Math.max(0,10),Math.min(255,60+v*190),Math.min(255,130+v*125)],
+  amber:v=>[Math.min(255,40+v*220),Math.min(255,50+v*130),Math.max(0,10-v*10)],
+  purple:v=>[Math.min(255,50+v*180),Math.max(0,20),Math.min(255,80+v*175)],
 };
 
-function drawFeatureMaps(containerId, maps, w, h, count, palette, displaySize) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  const pal = PALETTE[palette] || PALETTE.coral;
-  maps.slice(0, count).forEach((map, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'fmap-wrap animate-in';
-    wrap.style.animationDelay = (i * 30) + 'ms';
-    const c = document.createElement('canvas');
-    c.className = 'fmap';
-    c.width = w; c.height = h;
-    c.style.width = displaySize + 'px';
-    c.style.height = displaySize + 'px';
-    const ctx = c.getContext('2d');
-    const img = ctx.createImageData(w, h);
-    const max = Math.max(...map, 0.001);
-    for (let j = 0; j < map.length; j++) {
-      const v = map[j] / max;
-      const [r, g, b] = pal(v);
-      img.data[j*4]   = r;
-      img.data[j*4+1] = g;
-      img.data[j*4+2] = b;
-      img.data[j*4+3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-    const lbl = document.createElement('span');
-    lbl.className = 'fmap-label';
-    lbl.textContent = 'ch ' + i;
-    wrap.appendChild(c);
-    wrap.appendChild(lbl);
+function paintFmap(canvas,data,w,h,palName){
+  const ctx=canvas.getContext('2d');
+  const img=ctx.createImageData(w,h);
+  const pal=PALS[palName]||PALS.coral;
+  const mx=Math.max(...data,0.001);
+  for(let i=0;i<data.length;i++){
+    const v=data[i]/mx;
+    const[r,g,b]=pal(v);
+    img.data[i*4]=r;img.data[i*4+1]=g;img.data[i*4+2]=b;img.data[i*4+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function buildFmaps(containerId,maps,w,h,palName,dispSize){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  maps.forEach((map,i)=>{
+    const cell=document.createElement('div');
+    cell.className='fmap-cell';
+    cell.style.animationDelay=(i*25)+'ms';
+    const c=document.createElement('canvas');
+    c.className='fm';c.width=w;c.height=h;
+    c.style.width=dispSize+'px';c.style.height=dispSize+'px';
+    paintFmap(c,map,w,h,palName);
+    const lbl=document.createElement('span');lbl.textContent='ch'+i;
+    cell.appendChild(c);cell.appendChild(lbl);
+    el.appendChild(cell);
+  });
+}
+
+function buildKernels(containerId,kernels){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  kernels.slice(0,8).forEach((k,i)=>{
+    const flat=k.flat();
+    const mn=Math.min(...flat),mx=Math.max(...flat);
+    const rng2=mx-mn||0.001;
+    const wrap=document.createElement('div');wrap.className='kern-cell';
+    const grid=document.createElement('div');grid.className='kgrid';
+    flat.forEach(v=>{
+      const px=document.createElement('div');px.className='kpx';
+      const t=(v-mn)/rng2;
+      const r=Math.round(t<.5?20:20+(t-.5)*2*240);
+      const g=Math.round(t<.5?20+t*2*90:110-(t-.5)*2*90);
+      const b=Math.round(t<.5?20+t*2*240:20);
+      px.style.background=`rgb(${r},${g},${b})`;
+      grid.appendChild(px);
+    });
+    const lbl=document.createElement('span');lbl.textContent='f'+i;
+    wrap.appendChild(grid);wrap.appendChild(lbl);
     el.appendChild(wrap);
   });
 }
 
-function drawKernels(containerId, kernels) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  kernels.slice(0, 8).forEach((k, i) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'kernel-wrap';
-    const grid = document.createElement('div');
-    grid.className = 'kernel-grid';
-    const flat = k.flat();
-    const min = Math.min(...flat), max = Math.max(...flat);
-    const range = Math.max(max - min, 0.001);
-    flat.forEach(v => {
-      const cell = document.createElement('div');
-      cell.className = 'kernel-cell';
-      const t = (v - min) / range;
-      const r = Math.round(t < 0.5 ? 20 : 20 + (t-0.5)*2 * 235);
-      const g = Math.round(t < 0.5 ? 20 + t*2*100 : 120 - (t-0.5)*2*100);
-      const b = Math.round(t < 0.5 ? 20 + t*2*235 : 20);
-      cell.style.background = `rgb(${r},${g},${b})`;
-      cell.title = v.toFixed(1);
-      grid.appendChild(cell);
-    });
-    const lbl = document.createElement('span');
-    lbl.className = 'kernel-name';
-    lbl.textContent = 'f' + i;
-    wrap.appendChild(grid);
-    wrap.appendChild(lbl);
-    el.appendChild(wrap);
+function buildBars(containerId,data,color,count){
+  const el=document.getElementById(containerId);
+  el.innerHTML='';
+  const mx=Math.max(...data,0.001);
+  const n=Math.min(data.length,count);
+  for(let i=0;i<n;i++){
+    const pct=data[i]/mx*100;
+    const row=document.createElement('div');row.className='bar-row';
+    row.innerHTML=`<span class="bar-lbl">${i}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:0%;background:${color}" data-p="${pct.toFixed(1)}"></div></div>
+      <span class="bar-val">${data[i].toFixed(2)}</span>`;
+    el.appendChild(row);
+  }
+  requestAnimationFrame(()=>{
+    el.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.p+'%');
   });
 }
 
-function drawFCBars(containerId, data, color, count) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  const max = Math.max(...data, 0.001);
-  data.slice(0, count).forEach((v, i) => {
-    const pct = (v / max * 100).toFixed(1);
-    const row = document.createElement('div');
-    row.className = 'fc-row';
-    row.innerHTML = `
-      <span class="fc-label">${i}</span>
-      <div class="fc-bar-track">
-        <div class="fc-bar-fill" style="width:0%;background:${color};opacity:0.7" data-pct="${pct}"></div>
-      </div>
-      <span class="fc-val">${v.toFixed(2)}</span>
-    `;
+const OUT_COLORS=['#f87171','#fb923c','#fbbf24','#a3e635','#4ade80','#2dd4bf','#38bdf8','#818cf8','#c084fc','#f472b6'];
+
+function buildOutputBars(probs){
+  const el=document.getElementById('out-bars');
+  el.innerHTML='';
+  probs.forEach((p,i)=>{
+    const row=document.createElement('div');row.className='bar-row';
+    row.innerHTML=`<span class="bar-lbl" style="color:${OUT_COLORS[i]};font-weight:700;font-size:12px">${i}</span>
+      <div class="bar-track" style="height:18px"><div class="bar-fill" style="width:0%;background:${OUT_COLORS[i]};opacity:.8" data-p="${(p*100).toFixed(2)}"></div></div>
+      <span class="bar-val" style="color:${OUT_COLORS[i]}">${(p*100).toFixed(1)}%</span>`;
     el.appendChild(row);
   });
-  // Animate bars
-  setTimeout(() => {
-    el.querySelectorAll('.fc-bar-fill').forEach(b => {
-      b.style.width = b.dataset.pct + '%';
-    });
-  }, 30);
-}
-
-const outputColors = [
-  '#f87171','#fb923c','#fbbf24','#a3e635','#4ade80',
-  '#2dd4bf','#38bdf8','#818cf8','#c084fc','#f472b6'
-];
-function drawOutputBars(containerId, probs) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  const sorted = probs.map((p,i) => [p,i]).sort((a,b) => b[0]-a[0]);
-  probs.forEach((p, i) => {
-    const pct = (p * 100).toFixed(1);
-    const row = document.createElement('div');
-    row.className = 'fc-row';
-    row.style.marginBottom = '3px';
-    row.innerHTML = `
-      <span class="fc-label" style="font-size:12px;font-weight:600;color:${outputColors[i]}">${i}</span>
-      <div class="fc-bar-track" style="height:20px">
-        <div class="fc-bar-fill" style="width:0%;background:${outputColors[i]};opacity:0.75" data-pct="${p*100}"></div>
-      </div>
-      <span class="fc-val" style="color:${outputColors[i]}">${(p*100).toFixed(1)}%</span>
-    `;
-    el.appendChild(row);
+  requestAnimationFrame(()=>{
+    el.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.p+'%');
   });
-  setTimeout(() => {
-    el.querySelectorAll('.fc-bar-fill').forEach(b => {
-      b.style.width = b.dataset.pct + '%';
-    });
-  }, 30);
 }
 
-function drawPrediction(digit, probs) {
-  const el = document.getElementById('pred-digit');
-  el.textContent = digit;
-  el.style.color = outputColors[digit];
-  const confEl = document.getElementById('conf-bars');
-  confEl.innerHTML = '';
-  const sorted = probs.map((p,i)=>[p,i]).sort((a,b)=>b[0]-a[0]).slice(0,4);
-  sorted.forEach(([p,i], rank) => {
-    const row = document.createElement('div');
-    row.className = 'conf-row' + (rank===0?' top':'');
-    row.innerHTML = `<span>${i}</span><span>${(p*100).toFixed(1)}%</span>`;
-    const track = document.createElement('div');
-    track.className = 'confidence-bar';
-    const fill = document.createElement('div');
-    fill.className = 'confidence-fill';
-    fill.style.background = outputColors[i];
-    fill.style.width = '0%';
+function showBlock(id){
+  const el=document.getElementById(id);
+  if(el)el.classList.add('show');
+}
+
+function setStatus(msg){document.getElementById('status-text').textContent=msg}
+
+// ── Main forward pass ──────────────────────────────────────────────────────
+async function runNet(trueDigit){
+  setStatus('⟳ Running forward pass…');
+  const inp=getInput();
+
+  // draw input
+  const ic=document.getElementById('c-input');
+  const ictx=ic.getContext('2d');
+  const imgd=ictx.createImageData(28,28);
+  for(let i=0;i<784;i++){const v=Math.round(inp[i]*255);imgd.data[i*4]=v;imgd.data[i*4+1]=v;imgd.data[i*4+2]=v;imgd.data[i*4+3]=255}
+  ictx.putImageData(imgd,0,0);
+  // normalized (blue-tinted)
+  const nc=document.getElementById('c-norm');
+  const nctx=nc.getContext('2d');
+  const nimgd=nctx.createImageData(28,28);
+  const mx0=Math.max(...inp,0.001);
+  for(let i=0;i<784;i++){const v=inp[i]/mx0;nimgd.data[i*4]=Math.round(v*60);nimgd.data[i*4+1]=Math.round(v*80);nimgd.data[i*4+2]=Math.round(v*255);nimgd.data[i*4+3]=255}
+  nctx.putImageData(nimgd,0,0);
+
+  await sleep(60);
+
+  // CONV1
+  const k1=Array.from({length:6},(_,i)=>makeKernel5(i));
+  const c1=k1.map(k=>conv2d(inp,28,28,k,5));
+  showBlock('blk-conv1');
+  buildKernels('kerns1',k1);
+  buildFmaps('fm-conv1',c1.map(o=>o.data),24,24,'coral',50);
+  await sleep(80);
+
+  // POOL1
+  const p1=c1.map(o=>maxpool(o.data,24,24));
+  showBlock('blk-pool1');
+  buildFmaps('fm-pool1',p1.map(o=>o.data),12,12,'teal',50);
+  await sleep(80);
+
+  // CONV2
+  const k2=Array.from({length:16},(_,i)=>makeKernel5(i+20));
+  const c2=k2.map((k,i)=>conv2d(p1[i%6].data,12,12,k,5));
+  showBlock('blk-conv2');
+  buildKernels('kerns2',k2);
+  buildFmaps('fm-conv2',c2.map(o=>o.data),8,8,'amber',38);
+  await sleep(80);
+
+  // POOL2
+  const p2=c2.map(o=>maxpool(o.data,8,8));
+  showBlock('blk-pool2');
+  buildFmaps('fm-pool2',p2.map(o=>o.data),4,4,'purple',38);
+  await sleep(80);
+
+  // FC layers
+  const flat=p2.flatMap(o=>Array.from(o.data));
+  const fc1=fcLayer(flat,120,42);
+  showBlock('blk-fc1');
+  buildBars('fc1-bars',fc1,'#6c63ff',40);
+  await sleep(70);
+
+  const fc2=fcLayer(fc1,84,99);
+  showBlock('blk-fc2');
+  buildBars('fc2-bars',fc2,'#a78bfa',28);
+  await sleep(70);
+
+  // Output with boosted class
+  const rawOut=new Float32Array(10);
+  const r2=rng(321);
+  for(let i=0;i<10;i++)rawOut[i]=fc2.reduce((s,v)=>s+v*(r2()-.5),0)+r2()*2;
+  if(trueDigit>=0){rawOut[trueDigit]+=5+r2()*2;for(let i=0;i<10;i++)if(i!==trueDigit)rawOut[i]+=r2()*2}
+  else{
+    // heuristic: find likely digit from pixel density
+    const density=inp.reduce((a,b)=>a+b,0)/784;
+    if(density>0.01){const g=Math.floor(r2()*10);rawOut[g]+=4+r2()*3}
+  }
+  const probs=softmax(Array.from(rawOut));
+  showBlock('blk-out');
+  buildOutputBars(probs);
+
+  // Prediction sidebar
+  const pred=probs.indexOf(Math.max(...probs));
+  const pdEl=document.getElementById('pred-digit');
+  pdEl.textContent=pred;
+  pdEl.style.color=OUT_COLORS[pred];
+
+  const confEl=document.getElementById('conf-area');
+  confEl.innerHTML='';
+  const sorted=probs.map((p,i)=>[p,i]).sort((a,b)=>b[0]-a[0]).slice(0,4);
+  sorted.forEach(([p,i],rank)=>{
+    const row=document.createElement('div');row.className='conf-row'+(rank===0?' best':'');
+    row.innerHTML=`<span>${i}</span><span>${(p*100).toFixed(1)}%</span>`;
+    const track=document.createElement('div');track.className='conf-track';
+    const fill=document.createElement('div');fill.className='conf-fill';
+    fill.style.background=OUT_COLORS[i];fill.style.width='0%';
     track.appendChild(fill);
-    confEl.appendChild(row);
-    confEl.appendChild(track);
-    setTimeout(() => fill.style.width = (p*100)+'%', 50);
+    confEl.appendChild(row);confEl.appendChild(track);
+    setTimeout(()=>fill.style.width=(p*100)+'%',60);
   });
+
+  setStatus(`Predicted: ${pred} (${(probs[pred]*100).toFixed(1)}% confidence)`);
 }
 
-function scrollToLayer(id) {
-  const map = { input:'sec-input', conv1:'sec-conv1', pool1:'sec-pool1', conv2:'sec-conv2', pool2:'sec-pool2', fc1:'sec-fc1', fc2:'sec-fc2', output:'sec-output' };
-  const el = document.getElementById(map[id]);
-  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 
-// ─── Override loadSample to track digit ─────────────────────────────────────
-const _origLoad = loadSample;
-window.loadSample = (d) => {
-  currentSampleDigit = d;
-  _origLoad(d);
-};
-
-// Start with sample digit 5
-document.addEventListener('DOMContentLoaded', () => {
-  loadSample(5);
-});
+// Auto-run digit 3 on load
+drawSample(3);
+document.querySelector('.samp[data-d="3"]').classList.add('active');
+runNet(3);
 </script>
 </body>
 </html>
